@@ -25,13 +25,15 @@ class StatusCode(Enum):
     def __str__(self) -> str:
         return str(self.value) + " " + self.name
 
+    def __bool__(self) -> bool:
+        return str(self.value).startswith("2")
+
 
 class RequestType(Enum):
     REGISTER = "register"
     LOGIN = "login"
     DISCONNECT = "disconnect"
 
-    
     UNKNOWN = "unknown"
 
     @staticmethod

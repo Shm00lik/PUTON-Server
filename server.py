@@ -6,12 +6,12 @@ def handle_request(client_socket):
     request_data = client_socket.recv(1024)
     r = protocol.Request(request_data.decode())
 
-    print("body", r.getBody())
-    print("headers", r.getHeaders())
-    print("method", r.getMethod())
-    print("params", r.getParams())
-    print("payload", r.getPayload())
-    print("url", r.getUrl())
+    print("body", r.body)
+    print("headers", r.headers)
+    print("method", r.method)
+    print("params", r.params)
+    print("payload", r.payload)
+    print("url", r.url)
 
     response = protocol.Response.createResponse("Success")
     print(response)
