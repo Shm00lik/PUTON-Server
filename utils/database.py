@@ -1,5 +1,6 @@
 import sqlite3
 from enum import Enum
+from config import Config
 
 
 class FetchType(Enum):
@@ -95,7 +96,7 @@ class Database:
         else:
             Database.__instance = self
 
-        self.connection = sqlite3.connect("database.sqlite")
+        self.connection = sqlite3.connect(Config.DATABASE_PATH)
         self.cursor = self.connection.cursor()
 
     def execute(self, *queris: str) -> None:

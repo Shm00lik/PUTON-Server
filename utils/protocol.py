@@ -1,9 +1,5 @@
 from enum import Enum
-
-
-class Config:
-    PORT = 8080
-    HOST = "localhost"
+from config import Config
 
 
 class StatusCode(Enum):
