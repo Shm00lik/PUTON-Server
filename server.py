@@ -1,11 +1,17 @@
 import socket
 import utils.protocol as protocol
+from utils.communication import Communication
+import time
 
 
 def handle_request(client_socket):
-    request_data = client_socket.recv(1024)
-    r = protocol.Request(request_data.decode())
+    print("-------------------------------- ")
+    start = time.time()
+    request_data = Communication.getData(client_socket)
+    # request_data = client_socket.recv(1024).decode()
 
+    print(request_data)
+    r = protocol.Request(request_data)
     print("body", r.body)
     print("headers", r.headers)
     print("method", r.method)
@@ -19,13 +25,17 @@ def handle_request(client_socket):
 
     client_socket.close()
 
+    end = time.time()
+
+    print(f"Request took {end - start} seconds")
+
 
 def run_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(("localhost", 3339))
     server_socket.listen(1)
 
-    print("Listening on port 8080...")
+    print("Listening on port 3339...")
 
     while True:
         client_socket, client_address = server_socket.accept()

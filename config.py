@@ -1,4 +1,4 @@
 class Config:
-    PORT = 8080
-    HOST = "localhost"
-    DATABASE_PATH = "database/database.sqlite"
+    PORT: int = 8080
+    HOST: str = "localhost"
+    DATABASE_PATH: str = "database/database.sqlite"

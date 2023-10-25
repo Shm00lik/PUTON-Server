@@ -64,6 +64,19 @@ class Request:
     def __init__(self, data: str) -> None:
         self.splittedData = data.split("\r\n")
 
+        self.method = None
+        self.url = None
+        self.params = None
+        self.body = None
+        self.headers = None
+        self.payload = None
+
+        if len(self.splittedData) < 2:
+            return
+
+        self.parse()
+
+    def parse(self) -> None:
         self.method = self.getMethod()
         self.url = self.getUrl()
         self.params = self.getParams()
@@ -113,6 +126,9 @@ class Request:
             payload[param.split("=")[0]] = param.split("=")[1]
 
         return payload
+
+    def __str__(self) -> str:
+        return str(self.splittedData)
 
 
 class Response:
