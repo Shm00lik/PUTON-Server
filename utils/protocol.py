@@ -116,14 +116,40 @@ class Request:
 
 
 class Response:
+    """
+    This class is responsible for creating a response to the client.
+    """
+
+    # A template for the response with placeholders (totally not hiding a CTF)
     HTTP_RESPONSE_TEMPLATE: str = "HTTP/1.1 -STATUS_CODE-\r\nContent-Length: -CONTENT_LENGTH-\r\nCTF: QWRtaW4gUGFzc3dvcmQ6IDY4NzQ3NDcwNzMzQTJGMkY3Nzc3NzcyRTc5NkY3NTc0NzU2MjY1MkU2MzZGNkQyRjc3NjE3NDYzNjgzRjc2M0Q3ODc2NDY1QTZBNkYzNTUwNjc0NzMw\r\n\r\n-CONTENT-"
 
     @staticmethod
     def createResponse(content: str) -> str:
+        """
+        This method creates a response with a status code of 200 (OK).
+
+        Parameters:
+            content (str): The content of the response.
+
+        Returns:
+            str: The response.
+        """
+
         return Response.createResponseWithStatusCode(content, StatusCode.OK)
 
     @staticmethod
     def createResponseWithStatusCode(content: str, statusCode: StatusCode) -> str:
+        """
+        This method creates a response with a custom status code.
+
+        Parameters:
+            content (str): The content of the response.
+            statusCode (StatusCode): The status code of the response.
+
+        Returns:
+            str: The response.
+        """
+
         return (
             Response.HTTP_RESPONSE_TEMPLATE.replace("-STATUS_CODE-", str(statusCode))
             .replace("-CONTENT_LENGTH-", str(len(content)))

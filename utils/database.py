@@ -57,9 +57,7 @@ class Table:
         fetchType: FetchType = FetchType.NONE,
         fetchSize: int | None = None,
     ) -> list[tuple] | tuple | None:
-        self.query += " " + self.whereQuery
-        self.query += " " + self.orderQuery
-        self.query += " " + self.limitQuery
+        self.query = self.buildQuery()
 
         print("Query: ", self.query)
         self.reset()
@@ -74,10 +72,24 @@ class Table:
             case FetchType.MANY:
                 return Database.getInstance().fetchMany(self.query, fetchSize)
 
-    def reset(self):
+    def buildQuery(self) -> str:
+        return (
+            self.query
+            + " "
+            + self.whereQuery
+            + " "
+            + self.orderQuery
+            + " "
+            + self.limitQuery
+        )
+
+    def reset(self) -> None:
         self.whereQuery = ""
         self.orderQuery = ""
         self.limitQuery = ""
+
+    def __str__(self) -> str:
+        return self.buildQuery()
 
 
 class Database:
