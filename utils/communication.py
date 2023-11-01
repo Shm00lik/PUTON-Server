@@ -1,6 +1,5 @@
 import socket
-import threading
-from typing import Callable
+from config import Config
 
 
 class Communication:
@@ -8,14 +7,21 @@ class Communication:
     def getData(clientSocket: socket.socket) -> str:
         result = ""
 
-        clientSocket.settimeout(0.1)
+        # for preventing dDoS attacks
+        clientSocket.settimeout(Config.SOCKET_INPUT_TIMEOUT)
 
         while True:
             try:
-                data = clientSocket.recv(1)
+                chunk = clientSocket.recv(1024)
             except socket.timeout:
                 break
 
-            result += data.decode()
+            if not chunk:
+                break
+
+            result += chunk.decode()
+
+            if "\r\n\r\n" in result:
+                break
 
         return result

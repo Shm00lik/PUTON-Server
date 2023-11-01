@@ -137,37 +137,42 @@ class Response:
     """
 
     # A template for the response with placeholders (totally not hiding a CTF)
-    HTTP_RESPONSE_TEMPLATE: str = "HTTP/1.1 -STATUS_CODE-\r\nContent-Length: -CONTENT_LENGTH-\r\nCTF: QWRtaW4gUGFzc3dvcmQ6IDY4NzQ3NDcwNzMzQTJGMkY3Nzc3NzcyRTc5NkY3NTc0NzU2MjY1MkU2MzZGNkQyRjc3NjE3NDYzNjgzRjc2M0Q3ODc2NDY1QTZBNkYzNTUwNjc0NzMw\r\n\r\n-CONTENT-"
 
-    @staticmethod
-    def createResponse(content: str) -> str:
-        """
-        This method creates a response with a status code of 200 (OK).
+    def __init__(
+        self,
+        content: str = "",
+        statusCode: StatusCode = StatusCode.OK,
+        headers: dict[str, str] = {},
+    ) -> None:
+        self.headers: dict[str, str] = headers
 
-        Parameters:
-            content (str): The content of the response.
+        self.setContent(content)
 
-        Returns:
-            str: The response.
-        """
+        self.statusCode: StatusCode = statusCode
 
-        return Response.createResponseWithStatusCode(content, StatusCode.OK)
+        # self.setHeader("CTF", Config.CTF_FLAG)
 
-    @staticmethod
-    def createResponseWithStatusCode(content: str, statusCode: StatusCode) -> str:
-        """
-        This method creates a response with a custom status code.
+    def setContent(self, content: str) -> None:
+        self.content = content
 
-        Parameters:
-            content (str): The content of the response.
-            statusCode (StatusCode): The status code of the response.
+        if len(self.content) > 0:
+            self.setHeader("Content-Length", str(len(self.content)))
 
-        Returns:
-            str: The response.
-        """
+    def setHeader(self, key: str, value: str) -> None:
+        self.headers[key] = value
 
-        return (
-            Response.HTTP_RESPONSE_TEMPLATE.replace("-STATUS_CODE-", str(statusCode))
-            .replace("-CONTENT_LENGTH-", str(len(content)))
-            .replace("-CONTENT-", content)
+    def generate(self) -> str:
+        # Replace the placeholders with the actual values
+        response: str = "HTTP/1.1 " + str(self.statusCode) + "\r\n"
+
+        response += "\r\n".join(
+            [f"{key}: {value}" for key, value in self.headers.items()]
         )
+
+        if len(self.content) > 0:
+            response += "\r\n\r\n" + self.content
+
+        return response
+
+    def __str__(self) -> str:
+        return self.generate()
