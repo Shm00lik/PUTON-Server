@@ -1,63 +1,34 @@
 import socket
-import utils.protocol as protocol
-from utils.communication import Communication
-import time
+from config import Config
 import threading
 
 
-def handle_request(client_socket: socket.socket, clientAddress: socket.socket):
-    print(" -------------- ")
+class Server:
+    def __init__(self):
+        self.host: str = Config.HOST
+        self.port: int = Config.PORT
+        self.clients: list[socket.socket] = []
+        self.threads: list[threading.Thread] = []
+        self.socket: socket.socket = None
 
-    start = time.time()
-    request_data = Communication.getData(client_socket)
-    # request_data = client_socket.recv(1024).decode()
+    def start(self):
+        try:
+            self.socket = socket.socket()
+        except Exception as e:
+            print("Error while trying to start server: \n" + str(e))
 
-    print(len(request_data))
+    def accept(self) -> None:
+        clientSocket, clientAddress = self.socket.accept()
 
-    print(request_data[:100])
-    r = protocol.Request(request_data)
-    # print("body", r.body)
-    # print("headers", r.headers)
-    # print("method", r.method)
-    # print("params", r.params)
-    # print("payload", r.payload)
-    # print("url", r.url)
-    if r.url != "/":
-        client_socket.close()
-        return
+        t = threading.Thread(target=self.handleClient, args=(clientSocket, clientAddress))
 
-    response = protocol.Response(content='<img src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC" >')
-    response.setHeader("Content-Type", "text/html")
+        self.threads.append(t)
+        t.start()
 
-    # print(response)
-
-    client_socket.sendall(response.generate().encode())
-
-    client_socket.close()
-
-    end = time.time()
-
-    print(f"Request took {end - start} seconds")
+    def handleClient(self, clientSocket: socket.socket, clientAddress: tuple):
+        pass
 
 
-def run_server():
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("0.0.0.0", 1690))
-    server_socket.listen(10)
+    def shouldRun(self) -> bool:
+        return self.socket is not None
 
-    print("Listening on port 3339...")
-
-    while True:
-        client_socket, client_address = server_socket.accept()
-
-        threading.Thread(
-            target=handle_request,
-            args=(
-                client_socket,
-                client_address,
-            ),
-        ).start()
-
-
-if __name__ == "__main__":
-    run_server()
