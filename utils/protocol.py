@@ -2,65 +2,40 @@ from enum import Enum
 from config import Config
 
 
-class StatusCode(Enum):
-    OK = 200
-    CREATED = 201
-    BAD_REQUEST = 400
-    NOT_FOUND = 404
-    INTERNAL_SERVER_ERROR = 500
-
-    @staticmethod
-    def fromInt(statusCode: int):
-        mapper: dict = {v.value: v for v in StatusCode}
-
-        if statusCode not in mapper:
-            return StatusCode.INTERNAL_SERVER_ERROR
-
-        return mapper[statusCode]
-
-    def __str__(self) -> str:
-        return str(self.value) + " " + self.name
-
-    def __bool__(self) -> bool:
-        return str(self.value).startswith("2")
-
-
-class RequestType(Enum):
-    REGISTER = "register"
-    LOGIN = "login"
-    DISCONNECT = "disconnect"
-
-    UNKNOWN = "unknown"
-
-    @staticmethod
-    def fromUrl(url: str):
-        mapper: dict = {v.value: v for v in RequestType}
-        path = url.split("/")[1]
-
-        if path not in mapper:
-            return RequestType.UNKNOWN
-
-        return mapper[path]
-
-
-class RequestMethod(Enum):
-    GET = "GET"
-    POST = "POST"
-    PUT = "PUT"
-    DELETE = "DELETE"
-    UNKNOWN = "UNKNOWN"
-
-    @staticmethod
-    def fromRequestData(requestData: str):
-        mapper: dict = {v.value: v for v in RequestMethod}
-
-        if requestData.split(" ")[0] not in mapper:
-            return RequestMethod.UNKNOWN
-
-        return mapper[requestData.split(" ")[0]]
-
-
 class Request:
+    class RequestMethod(Enum):
+        GET = "GET"
+        POST = "POST"
+        PUT = "PUT"
+        DELETE = "DELETE"
+        UNKNOWN = "UNKNOWN"
+
+        @staticmethod
+        def fromRequestData(requestData: str):
+            mapper: dict = {v.value: v for v in Request.RequestMethod}
+
+            if requestData.split(" ")[0] not in mapper:
+                return Request.RequestMethod.UNKNOWN
+
+            return mapper[requestData.split(" ")[0]]
+
+    class RequestType(Enum):
+        REGISTER = "register"
+        LOGIN = "login"
+        DISCONNECT = "disconnect"
+
+        UNKNOWN = "unknown"
+
+        @staticmethod
+        def fromUrl(url: str):
+            mapper: dict = {v.value: v for v in Request.RequestType}
+            path = url.split("/")[1]
+
+            if path not in mapper:
+                return Request.RequestType.UNKNOWN
+
+            return mapper[path]
+
     def __init__(self, data: str) -> None:
         self.splittedData = data.split("\r\n")
 
@@ -85,7 +60,7 @@ class Request:
         self.payload = self.getPayload()
 
     def getMethod(self) -> RequestMethod:
-        return RequestMethod.fromRequestData(self.splittedData[0])
+        return Request.RequestMethod.fromRequestData(self.splittedData[0])
 
     def getUrl(self) -> str:
         return self.splittedData[0].split(" ")[1].split("?")[0]
@@ -137,6 +112,27 @@ class Response:
     """
 
     # A template for the response with placeholders (totally not hiding a CTF)
+    class StatusCode(Enum):
+        OK = 200
+        CREATED = 201
+        BAD_REQUEST = 400
+        NOT_FOUND = 404
+        INTERNAL_SERVER_ERROR = 500
+
+        @staticmethod
+        def fromInt(statusCode: int):
+            mapper: dict = {v.value: v for v in Response.StatusCode}
+
+            if statusCode not in mapper:
+                return Response.StatusCode.INTERNAL_SERVER_ERROR
+
+            return mapper[statusCode]
+
+        def __str__(self) -> str:
+            return str(self.value) + " " + self.name
+
+        def __bool__(self) -> bool:
+            return str(self.value).startswith("2")
 
     def __init__(
         self,
@@ -145,12 +141,13 @@ class Response:
         headers: dict[str, str] = {},
     ) -> None:
         self.headers: dict[str, str] = headers
+        self.content = ""
 
         self.setContent(content)
 
-        self.statusCode: StatusCode = statusCode
+        self.statusCode: Response.StatusCode = statusCode
 
-        # self.setHeader("CTF", Config.CTF_FLAG)
+        self.setHeader("CTF", Config.CTF_FLAG)
 
     def setContent(self, content: str) -> None:
         self.content = content
