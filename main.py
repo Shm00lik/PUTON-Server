@@ -1,16 +1,24 @@
-from server import Server
+from httpLib.server import Server
+from httpLib.protocol import Request, Response
+import socket
+from config import Config
 
 
-def main() -> None:
-    server = Server()
-    server.start()
+def handleClient(request: Request, client: socket.socket, addr: tuple):
+    print("Client connected from", addr)
 
-    running = True
+    response = Response()
+    response.setHeader("CTF", Config.CTF_FLAG)
 
-    while running:
-        server.accept()
-        running = server.shouldRun()
+    client.sendall(response.generate().encode())
+    client.close()
 
 
 if __name__ == "__main__":
-    main()
+    server = Server(
+        handleClient,
+        host=Config.HOST,
+        port=Config.PORT,
+        timeout=Config.SOCKET_TIMEOUT,
+    )
+    server.start()

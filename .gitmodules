@@ -1,3 +1,3 @@
-[submodule "http-lib"]
-	path = http-lib
-	url = https://github.com/Shm00lik/http-lib.git
+[submodule "httpLib"]
+	path = httpLib
+	url = https://github.com/Shm00lik/httpLib.git
