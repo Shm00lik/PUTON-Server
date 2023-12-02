@@ -1,0 +1,3 @@
+[submodule "http-lib"]
+	path = http-lib
+	url = https://github.com/Shm00lik/http-lib.git
