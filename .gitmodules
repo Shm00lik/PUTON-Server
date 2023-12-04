@@ -1,3 +1,6 @@
 [submodule "httpLib"]
 	path = httpLib
 	url = https://github.com/Shm00lik/httpLib.git
+[submodule "sqliteLib"]
+	path = sqliteLib
+	url = https://github.com/Shm00lik/sqliteLib
