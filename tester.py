@@ -7,7 +7,10 @@
 # r = requests.post(url, data=payload)
 # print(r.text)
 
-from utils.database import Table, FetchType
+from sqliteLib.table import Table, FetchType
+from sqliteLib.database import Database
+
+db = Database.getInstance("./database/database.sqlite")
 
 table = Table("users")
 # table.create("usename TEXT NOT NULL", "password TEXT NOT NULL").execute()
