@@ -1,6 +1,6 @@
 class Config:
-    PORT: int = 8080
     HOST: str = "localhost"
+    PORT: int = 8080
     DATABASE_PATH: str = "database/database.sqlite"
     SOCKET_TIMEOUT: int = 1
 
