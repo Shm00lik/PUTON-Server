@@ -74,16 +74,9 @@ class BusinessLogic:
         client.send(response)
 
     @staticmethod
-    def validateRequest(request: Request, function: Callable[[Request], bool]) -> bool:
-        return function(request)
-
-    @staticmethod
     def register(request: Request) -> Response:
         if not RequestValidator.register(request):
-            return Response(
-                content=json.dumps({"error": "Invalid request"}),
-                statusCode=Response.StatusCode.BAD_REQUEST,
-            )
+            return Response.error("Invalid request")
 
         BusinessLogic.usersTable.insert(
             username=request.payload["username"],
@@ -92,10 +85,13 @@ class BusinessLogic:
 
         print("Registering new user " + str(request.payload))
 
-        return Response(content="{'msg': 'User registered successfully'}")
+        return Response.success("User registered successfully")
 
     @staticmethod
     def login(request: Request) -> Response:
+        if not RequestValidator.login(request):
+            return Response.error("Invalid request")
+
         print("Logging in user " + str(request))
 
-        return Response(content="'msg': 'User logged in successfully'")
+        return Response.success("User logged in successfully")
