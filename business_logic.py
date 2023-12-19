@@ -1,15 +1,44 @@
 from httpLib.client import Client
 from httpLib.protocol import Request, Response
 from config import Config
-from typing import Callable
-import json
 from sqliteLib.database import Database
 from sqliteLib.table import Table
-import time
+from typing import Callable
+import json
+from enum import Enum
+
+
+class RequestType(Enum):
+    UNKNOWN = "unknown"
+
+    REGISTER = "register"
+    LOGIN = "login"
+    DISCONNECT = "disconnect"
+
+    @staticmethod
+    def fromUrl(url: str) -> "RequestType":
+        mapper: dict = {v.value: v for v in RequestType}
+
+        if "/" not in url:
+            return RequestType.UNKNOWN
+
+        if url.split("/")[1] not in mapper:
+            return RequestType.UNKNOWN
+
+        return mapper[url.split("/")[1]]
+
+
+class RequestValidator:
+    @staticmethod
+    def register(request: Request) -> bool:
+        return "username" in request.payload and "password" in request.payload
+
+    @staticmethod
+    def login(request: Request) -> bool:
+        return "username" in request.payload and "password" in request.payload
 
 
 class BusinessLogic:
-    print("Initializing database")
     db = Database(Config.DATABASE_PATH)
 
     usersTable = Table("users")
@@ -18,13 +47,14 @@ class BusinessLogic:
     def handleClient(request: Request, client: Client):
         print("Client connected from", client.clientAddress)
 
+        requestTpye = RequestType.fromUrl(request.url)
         response: Response | None = None
 
         if request.method == Request.RequestMethod.POST:
-            if request.type == Request.RequestType.REGISTER:
+            if requestTpye == RequestType.REGISTER:
                 response = BusinessLogic.register(request)
 
-            elif request.type == Request.RequestType.LOGIN:
+            elif requestTpye == RequestType.LOGIN:
                 response = BusinessLogic.login(request)
 
         elif request.method == Request.RequestMethod.GET:
@@ -49,7 +79,7 @@ class BusinessLogic:
 
     @staticmethod
     def register(request: Request) -> Response:
-        if not BusinessLogic.validateRequest(request, lambda r: r.payload is not None):
+        if not RequestValidator.register(request):
             return Response(
                 content=json.dumps({"error": "Invalid request"}),
                 statusCode=Response.StatusCode.BAD_REQUEST,

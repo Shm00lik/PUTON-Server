@@ -13,11 +13,11 @@ from sqliteLib.database import Database
 db = Database.getInstance("./database/database.sqlite")
 
 table = Table("users")
-# table.create("usename TEXT NOT NULL", "password TEXT NOT NULL").execute()
+table.create("username TEXT NOT NULL", "password TEXT NOT NULL").execute()
 
-a = table.select("usename", "password").where(usename="Yoav", password="1234")
+# a = table.select("usename", "password").where(usename="Yoav", password="1234")
 
-print(a.execute(fetchType=FetchType.MANY, fetchSize=4))
+# print(a.execute(fetchType=FetchType.MANY, fetchSize=4))
 
 # table.insert(usename="Yoav", password="1234").execute()
 # print("ASD")

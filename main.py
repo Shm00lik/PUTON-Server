@@ -11,3 +11,5 @@ if __name__ == "__main__":
     )
 
     server.start()
+
+    print("Server started!")
