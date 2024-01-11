@@ -2,9 +2,7 @@ from httpLib.client import Client
 from httpLib.protocol import Request, Response
 from config import Config
 from sqliteLib.database import Database
-from sqliteLib.table import Table
-from typing import Callable
-import json
+from sqliteLib.table import Table, FetchType
 from enum import Enum
 
 
@@ -69,8 +67,10 @@ class BusinessLogic:
                 statusCode=Response.StatusCode.NOT_FOUND,
             )
 
-        response.setHeader("CTF", Config.CTF_FLAG)
+        # response.setHeader("CTF", Config.CTF_FLAG)
+        response.setHeader("Access-Control-Allow-Origin", "*")
 
+        print(response)
         client.send(response)
 
     @staticmethod
@@ -83,8 +83,6 @@ class BusinessLogic:
             password=request.payload["password"],
         ).execute()
 
-        print("Registering new user " + str(request.payload))
-
         return Response.success("User registered successfully")
 
     @staticmethod
@@ -92,6 +90,17 @@ class BusinessLogic:
         if not RequestValidator.login(request):
             return Response.error("Invalid request")
 
-        print("Logging in user " + str(request))
-
-        return Response.success("User logged in successfully")
+        return Response(
+            content={
+                "success": True,
+                "message": str(
+                    BusinessLogic.usersTable.select("*")
+                    .where(
+                        username=request.payload["username"],
+                        password=request.payload["password"],
+                    )
+                    .execute(fetchType=FetchType.ONE)
+                ),
+            },
+            contentType=Response.ContentType.JSON,
+        )
