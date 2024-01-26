@@ -4,7 +4,7 @@ from business_logic import BusinessLogic
 
 if __name__ == "__main__":
     server = Server(
-        BusinessLogic.handleClient,
+        BusinessLogic.getInstance().handleClient,
         host=Config.HOST,
         port=Config.PORT,
         timeout=Config.SOCKET_TIMEOUT,

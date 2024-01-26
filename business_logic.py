@@ -37,12 +37,27 @@ class RequestValidator:
 
 
 class BusinessLogic:
-    db = Database(Config.DATABASE_PATH)
-
-    usersTable = Table("users")
+    __instance = None
 
     @staticmethod
-    def handleClient(request: Request, client: Client):
+    def getInstance() -> "BusinessLogic":
+        if BusinessLogic.__instance == None:
+            BusinessLogic.__instance = BusinessLogic()
+
+        return BusinessLogic.__instance
+
+    def __init__(self) -> None:
+        if BusinessLogic.__instance != None:
+            raise Exception("This class is a singleton!")
+        else:
+            BusinessLogic.__instance = self
+            self.initDatabase()
+
+    def initDatabase(self) -> None:
+        self.db = Database(Config.DATABASE_PATH)
+        self.usersTable = Table("users")
+
+    def handleClient(self, request: Request, client: Client):
         print("Client connected from", client.clientAddress)
 
         requestTpye = RequestType.fromUrl(request.url)
@@ -50,10 +65,10 @@ class BusinessLogic:
 
         if request.method == Request.RequestMethod.POST:
             if requestTpye == RequestType.REGISTER:
-                response = BusinessLogic.register(request)
+                response = self.register(request)
 
             elif requestTpye == RequestType.LOGIN:
-                response = BusinessLogic.login(request)
+                response = self.login(request)
 
         elif request.method == Request.RequestMethod.GET:
             response = Response(
@@ -73,34 +88,51 @@ class BusinessLogic:
         print(response)
         client.send(response)
 
-    @staticmethod
-    def register(request: Request) -> Response:
+    def register(self, request: Request) -> Response:
         if not RequestValidator.register(request):
             return Response.error("Invalid request")
 
-        BusinessLogic.usersTable.insert(
+        user = (
+            self.usersTable.select("*")
+            .where(
+                operator="OR",
+                email=request.payload["email"],
+                username=request.payload["username"],
+            )
+            .execute(fetchType=FetchType.ONE)
+        )
+
+        if user is not None:
+            return Response.error(
+                "Email and/or username already exists!",
+                statusCode=Response.StatusCode.CONFLICT,
+            )
+
+        self.usersTable.insert(
+            email=request.payload["email"],
             username=request.payload["username"],
             password=request.payload["password"],
         ).execute()
 
-        return Response.success("User registered successfully")
+        return Response.success("Registered successfully!")
 
-    @staticmethod
-    def login(request: Request) -> Response:
+    def login(self, request: Request) -> Response:
         if not RequestValidator.login(request):
             return Response.error("Invalid request")
 
-        return Response(
-            content={
-                "success": True,
-                "message": str(
-                    BusinessLogic.usersTable.select("*")
-                    .where(
-                        username=request.payload["username"],
-                        password=request.payload["password"],
-                    )
-                    .execute(fetchType=FetchType.ONE)
-                ),
-            },
-            contentType=Response.ContentType.JSON,
+        user = (
+            self.usersTable.select("*")
+            .where(
+                username=request.payload["username"],
+                password=request.payload["password"],
+            )
+            .execute(fetchType=FetchType.ONE)
         )
+
+        if user is None:
+            return Response.error(
+                "Username and/or password are incorrect!",
+                statusCode=Response.StatusCode.UNAUTHORIZED,
+            )
+
+        return Response.success("Logged in successfully!")

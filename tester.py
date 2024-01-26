@@ -13,8 +13,13 @@ from sqliteLib.database import Database
 db = Database.getInstance("./database/database.sqlite")
 
 table = Table("users")
-table.create("username TEXT NOT NULL", "password TEXT NOT NULL").execute()
-
+table.create(
+    "id INTEGER PRIMARY KEY AUTOINCREMENT",
+    "username TEXT NOT NULL UNIQUE",
+    "email TEXT NOT NULL UNIQUE",
+    "password TEXT NOT NULL",
+).execute()
+# db.execute("DROP TABLE users")
 # a = table.select("usename", "password").where(usename="Yoav", password="1234")
 
 # print(a.execute(fetchType=FetchType.MANY, fetchSize=4))
