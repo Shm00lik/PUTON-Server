@@ -12,17 +12,17 @@ from sqliteLib.database import Database
 
 db = Database.getInstance("./database/database.sqlite")
 
-table = Table("users")
+table = Table("wishlists")
+
 table.create(
-    "id INTEGER PRIMARY KEY AUTOINCREMENT",
-    "username TEXT NOT NULL UNIQUE",
-    "email TEXT NOT NULL UNIQUE",
-    "password TEXT NOT NULL",
+    "productID INTEGER NOT NULL",
+    "username TEXT NOT NULL",
 ).execute()
+
 # db.execute("DROP TABLE users")
 # a = table.select("usename", "password").where(usename="Yoav", password="1234")
 
 # print(a.execute(fetchType=FetchType.MANY, fetchSize=4))
 
-# table.insert(usename="Yoav", password="1234").execute()
+table.insert(username="yali1234", productID="1234").execute()
 # print("ASD")

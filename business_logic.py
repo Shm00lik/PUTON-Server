@@ -11,7 +11,7 @@ class RequestType(Enum):
 
     REGISTER = "register"
     LOGIN = "login"
-    DISCONNECT = "disconnect"
+    GET_WISHLIST = "getWishlist"
 
     @staticmethod
     def fromUrl(url: str) -> "RequestType":
@@ -35,6 +35,10 @@ class RequestValidator:
     def login(request: Request) -> bool:
         return "username" in request.payload and "password" in request.payload
 
+    @staticmethod
+    def getWishlist(request: Request) -> bool:
+        return "username" in request.params
+
 
 class BusinessLogic:
     __instance = None
@@ -56,25 +60,30 @@ class BusinessLogic:
     def initDatabase(self) -> None:
         self.db = Database(Config.DATABASE_PATH)
         self.usersTable = Table("users")
+        self.wishlistsTable = Table("wishlists")
 
     def handleClient(self, request: Request, client: Client):
         print("Client connected from", client.clientAddress)
 
-        requestTpye = RequestType.fromUrl(request.url)
+        requestType = RequestType.fromUrl(request.url)
         response: Response | None = None
 
         if request.method == Request.RequestMethod.POST:
-            if requestTpye == RequestType.REGISTER:
+            if requestType == RequestType.REGISTER:
                 response = self.register(request)
 
-            elif requestTpye == RequestType.LOGIN:
+            elif requestType == RequestType.LOGIN:
                 response = self.login(request)
 
         elif request.method == Request.RequestMethod.GET:
-            response = Response(
-                content="Hello, World!",
-                statusCode=Response.StatusCode.OK,
-            )
+            if requestType == RequestType.GET_WISHLIST:
+                response = self.getWishlist(request)
+
+            else:
+                response = Response(
+                    content="Hello, World!",
+                    statusCode=Response.StatusCode.OK,
+                )
 
         if response is None:
             response = Response(
@@ -136,3 +145,19 @@ class BusinessLogic:
             )
 
         return Response.success("Logged in successfully!")
+
+    def getWishlist(self, request: Request) -> Response:
+        if not RequestValidator.getWishlist(request):
+            return Response.error("Invalid request")
+        
+        wishlist = (
+            self.wishlistsTable.select("productID")
+            .where(
+                username=request.params["username"]
+            )
+            .execute(fetchType=FetchType.ALL)
+        )
+
+        wishlist = list(map(lambda x: x[0], wishlist))
+
+        return Response.success(wishlist)
