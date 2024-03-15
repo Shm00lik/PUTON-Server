@@ -12,26 +12,25 @@ from sqliteLib.database import Database
 import base64
 
 db = Database.getInstance("./database/database.sqlite")
-db.execute("DROP TABLE products")
+# db.execute("DROP TABLE users")
 
-table = Table("products")
+table = Table("users")
 
-table.create(
-    "productID INTEGER NOT NULL UNIQUE",
-    "title TEXT NOT NULL",
-    "description TEXT NOT NULL",
-    "price REAL NOT NULL",
-    "image TEXT NOT NULL"
-).execute()
+# table.create(
+#     'id INTEGER PRIMARY KEY',
+#     'email TEXT NOT NULL',
+#     'username TEXT NOT NULL',
+#     'password TEXT NOT NULL',
+#     'token TEXT NOT NULL',
+# ).execute()
 
 # a = table.select("usename", "password").where(usename="Yoav", password="1234")
 
 # print(a.execute(fetchType=FetchType.MANY, fetchSize=4))
 
-with open("71n-oeNV6BL.jpg", "rb") as image_file:
-    data = image_file.read()
 
-# print(data)
-
-table.insert(productID="1234", title="Toaster", description="The best toaster in the world!", price=16.90, image=data).execute()
+# table.insert(productID="123", title="Toaster", description="The best toaster in the world!", price=16.90).execute()
+# table.insert(productID="123", title="Toaster", description="The best toaster in the world!", price=16.90).execute()
+# db.execute('ALTER TABLE users ADD COLUMN token TEXT')
+# table.delete().where(username="yali1234").execute()
 # print("ASD")

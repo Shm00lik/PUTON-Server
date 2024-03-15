@@ -6,17 +6,17 @@ class RequestType(Enum):
 
     REGISTER = "register"
     LOGIN = "login"
-    GET_WISHLIST = "getWishlist"
-    GET_PRODUCT = "getProduct"
+    WISHLIST = "wishlist"
+    PRODUCT = "product"
     
     @staticmethod
-    def fromUrl(url: str) -> "RequestType":
+    def fromUrl(url: list[str]) -> "RequestType":
         mapper: dict = {v.value: v for v in RequestType}
 
-        if "/" not in url:
+        if url[0] == "":
             return RequestType.UNKNOWN
 
-        if url.split("/")[1] not in mapper:
+        if url[0] not in mapper:
             return RequestType.UNKNOWN
 
-        return mapper[url.split("/")[1]]
+        return mapper[url[0]]

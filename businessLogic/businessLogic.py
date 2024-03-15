@@ -5,6 +5,8 @@ from sqliteLib.database import Database
 from sqliteLib.table import Table, FetchType
 from .requestType import RequestType
 from .requestValidator import RequestValidator
+import base64
+import uuid
 
 
 class BusinessLogic:
@@ -44,26 +46,22 @@ class BusinessLogic:
                 response = self.login(request)
 
         elif request.method == Request.RequestMethod.GET:
-            if requestType == RequestType.GET_WISHLIST:
-                response = self.getWishlist(request)
+            if requestType == RequestType.WISHLIST:
+                response = self.wishlist(request)
 
-            elif requestType == RequestType.GET_PRODUCT:
-                response = self.getProduct(request)
+            elif requestType == RequestType.PRODUCT:
+                response = self.product(request)
 
             else:
-                response = Response(
-                    content="Hello, World!",
-                    statusCode=Response.StatusCode.OK,
-                )
+                response = Response.error("Hello, World!")
 
         if response is None:
-            response = Response(
-                content="Please check your request and try again",
-                statusCode=Response.StatusCode.NOT_FOUND,
-            )
+            response = Response.error("Please check your request and try again",)
 
         # response.setHeader("CTF", Config.CTF_FLAG)
         response.setHeader("Access-Control-Allow-Origin", "*")
+        response.setHeader("Access-Control-Allow-Headers", "*")
+        response.setHeader("Access-Control-Allow-Methods", "*")
 
         print(response)
         client.send(response)
@@ -85,17 +83,20 @@ class BusinessLogic:
         if user is not None:
             return Response.error(
                 "Email and/or username already exists!",
-                statusCode=Response.StatusCode.CONFLICT,
+                statusCode=Response.StatusCode.OK,
             )
+
+        token = uuid.uuid4().hex
 
         self.usersTable.insert(
             email=request.payload["email"],
             username=request.payload["username"],
             password=request.payload["password"],
+            token=token
         ).execute()
 
-        return Response.success("Registered successfully!")
-
+        return Response.success('Registered Successfully').setHeader('Set-Cookie', f"Token={token}")
+    
     def login(self, request: Request) -> Response:
         if not RequestValidator.login(request):
             return Response.error("Invalid request")
@@ -112,19 +113,18 @@ class BusinessLogic:
         if user is None:
             return Response.error(
                 "Username and/or password are incorrect!",
-                statusCode=Response.StatusCode.UNAUTHORIZED,
+                statusCode=Response.StatusCode.OK,
             )
 
-        return Response.success("Logged in successfully!")
+        return Response.success("Logged in successfully!").setHeader('Set-Cookie', f"Token={user['token']}")
 
-    def getWishlist(self, request: Request) -> Response:
-        if not RequestValidator.getWishlist(request):
-            return Response.error("Invalid request")
-        
+    @RequestValidator.authenticated
+    def wishlist(self, request: Request) -> Response:
+        print("RUNNINNGNGNGNG")
         wishlist = (
             self.wishlistsTable.select("productID")
             .where(
-                username=request.params["username"]
+                username=request.user['username']
             )
             .execute(fetchType=FetchType.ALL)
         )
@@ -133,18 +133,29 @@ class BusinessLogic:
 
         return Response.success(wishlist)
     
-    def getProduct(self, request: Request) -> Response:
-        if not RequestValidator.getProduct(request):
-            return Response.error("Invalid request")
-
+    @RequestValidator.authenticated
+    def product(self, request: Request) -> Response:
         product = (
             self.productsTable.select("*")
             .where(
-                productID=request.params["productID"]
+                productID=request.url[1]
             )
             .execute(fetchType=FetchType.ONE)
         )
+
+        if product == None:
+            return Response.error("Product not found!")
         
-        print(type(product[1]))
+        with open(f"./database/images/{product['productID']}.jpg", 'rb') as im:
+            image = base64.b64encode(im.read()).decode('utf-8')
+        
+        product = {
+            'productID': product['productID'],
+            'title': product['title'],
+            'description': product['description'],
+            'price': product['price'],
+            'image': image,
+        }
+
 
         return Response.success(product)
