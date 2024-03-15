@@ -9,20 +9,29 @@
 
 from sqliteLib.table import Table, FetchType
 from sqliteLib.database import Database
+import base64
 
 db = Database.getInstance("./database/database.sqlite")
+db.execute("DROP TABLE products")
 
-table = Table("wishlists")
+table = Table("products")
 
 table.create(
-    "productID INTEGER NOT NULL",
-    "username TEXT NOT NULL",
+    "productID INTEGER NOT NULL UNIQUE",
+    "title TEXT NOT NULL",
+    "description TEXT NOT NULL",
+    "price REAL NOT NULL",
+    "image TEXT NOT NULL"
 ).execute()
 
-# db.execute("DROP TABLE users")
 # a = table.select("usename", "password").where(usename="Yoav", password="1234")
 
 # print(a.execute(fetchType=FetchType.MANY, fetchSize=4))
 
-table.insert(username="yali1234", productID="1234").execute()
+with open("71n-oeNV6BL.jpg", "rb") as image_file:
+    data = image_file.read()
+
+# print(data)
+
+table.insert(productID="1234", title="Toaster", description="The best toaster in the world!", price=16.90, image=data).execute()
 # print("ASD")

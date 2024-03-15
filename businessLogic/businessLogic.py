@@ -3,41 +3,8 @@ from httpLib.protocol import Request, Response
 from config import Config
 from sqliteLib.database import Database
 from sqliteLib.table import Table, FetchType
-from enum import Enum
-
-
-class RequestType(Enum):
-    UNKNOWN = "unknown"
-
-    REGISTER = "register"
-    LOGIN = "login"
-    GET_WISHLIST = "getWishlist"
-
-    @staticmethod
-    def fromUrl(url: str) -> "RequestType":
-        mapper: dict = {v.value: v for v in RequestType}
-
-        if "/" not in url:
-            return RequestType.UNKNOWN
-
-        if url.split("/")[1] not in mapper:
-            return RequestType.UNKNOWN
-
-        return mapper[url.split("/")[1]]
-
-
-class RequestValidator:
-    @staticmethod
-    def register(request: Request) -> bool:
-        return "username" in request.payload and "password" in request.payload
-
-    @staticmethod
-    def login(request: Request) -> bool:
-        return "username" in request.payload and "password" in request.payload
-
-    @staticmethod
-    def getWishlist(request: Request) -> bool:
-        return "username" in request.params
+from .requestType import RequestType
+from .requestValidator import RequestValidator
 
 
 class BusinessLogic:
@@ -58,9 +25,10 @@ class BusinessLogic:
             self.initDatabase()
 
     def initDatabase(self) -> None:
-        self.db = Database(Config.DATABASE_PATH)
+        self.db = Database.getInstance(Config.DATABASE_PATH)
         self.usersTable = Table("users")
         self.wishlistsTable = Table("wishlists")
+        self.productsTable = Table("products")
 
     def handleClient(self, request: Request, client: Client):
         print("Client connected from", client.clientAddress)
@@ -78,6 +46,9 @@ class BusinessLogic:
         elif request.method == Request.RequestMethod.GET:
             if requestType == RequestType.GET_WISHLIST:
                 response = self.getWishlist(request)
+
+            elif requestType == RequestType.GET_PRODUCT:
+                response = self.getProduct(request)
 
             else:
                 response = Response(
@@ -161,3 +132,19 @@ class BusinessLogic:
         wishlist = list(map(lambda x: x[0], wishlist))
 
         return Response.success(wishlist)
+    
+    def getProduct(self, request: Request) -> Response:
+        if not RequestValidator.getProduct(request):
+            return Response.error("Invalid request")
+
+        product = (
+            self.productsTable.select("*")
+            .where(
+                productID=request.params["productID"]
+            )
+            .execute(fetchType=FetchType.ONE)
+        )
+        
+        print(type(product[1]))
+
+        return Response.success(product)

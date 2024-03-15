@@ -1,6 +1,6 @@
 from httpLib.server import Server
 from config import Config
-from business_logic import BusinessLogic
+from businessLogic.businessLogic import BusinessLogic
 
 if __name__ == "__main__":
     server = Server(
