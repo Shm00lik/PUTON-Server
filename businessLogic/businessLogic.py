@@ -7,6 +7,7 @@ from .requestType import RequestType
 from .requestValidator import RequestValidator
 import base64
 import uuid
+import time
 
 
 class BusinessLogic:
@@ -63,7 +64,7 @@ class BusinessLogic:
         response.setHeader("Access-Control-Allow-Headers", "*")
         response.setHeader("Access-Control-Allow-Methods", "*")
 
-        print(response)
+        # print(response)
         client.send(response)
 
     def register(self, request: Request) -> Response:
@@ -120,7 +121,6 @@ class BusinessLogic:
 
     @RequestValidator.authenticated
     def wishlist(self, request: Request) -> Response:
-        print("RUNNINNGNGNGNG")
         wishlist = (
             self.wishlistsTable.select("productID")
             .where(
@@ -131,6 +131,7 @@ class BusinessLogic:
 
         wishlist = list(map(lambda x: x[0], wishlist))
 
+        time.sleep(10)
         return Response.success(wishlist)
     
     @RequestValidator.authenticated
@@ -145,7 +146,7 @@ class BusinessLogic:
 
         if product == None:
             return Response.error("Product not found!")
-        
+            
         with open(f"./database/images/{product['productID']}.jpg", 'rb') as im:
             image = base64.b64encode(im.read()).decode('utf-8')
         

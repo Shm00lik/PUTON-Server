@@ -14,7 +14,7 @@ import base64
 db = Database.getInstance("./database/database.sqlite")
 # db.execute("DROP TABLE users")
 
-table = Table("users")
+table = Table("wishlists")
 
 # table.create(
 #     'id INTEGER PRIMARY KEY',
@@ -28,6 +28,7 @@ table = Table("users")
 
 # print(a.execute(fetchType=FetchType.MANY, fetchSize=4))
 
+table.insert(username="yali1234", productID=123).execute()
 
 # table.insert(productID="123", title="Toaster", description="The best toaster in the world!", price=16.90).execute()
 # table.insert(productID="123", title="Toaster", description="The best toaster in the world!", price=16.90).execute()

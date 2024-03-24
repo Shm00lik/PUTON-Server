@@ -17,13 +17,12 @@ class RequestValidator:
             request = args[1]
 
             users = Table('users')
-            print(request.headers['Token'])
+
             user = users.select("*").where(
                 token=request.headers['Token']
             ).execute(fetchType=FetchType.ONE)
 
             if user == None:
-                print("NOT AUTHED")
                 return Response.error("Not Authenticated")
 
             request.user = user
