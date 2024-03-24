@@ -1,8 +1,7 @@
-from httpLib.client import Client
-from httpLib.protocol import Request, Response
+from network.client import Client
+from network.protocol import Request, Response
 from config import Config
-from sqliteLib.database import Database
-from sqliteLib.table import Table, FetchType
+from database.database import Database
 from .requestType import RequestType
 from .requestValidator import RequestValidator
 import base64
@@ -28,10 +27,10 @@ class BusinessLogic:
             self.initDatabase()
 
     def initDatabase(self) -> None:
-        self.db = Database.getInstance(Config.DATABASE_PATH)
-        self.usersTable = Table("users")
-        self.wishlistsTable = Table("wishlists")
-        self.productsTable = Table("products")
+        self.db = Database.getInstance()
+
+    def getDatabase(self) -> "Database":
+        return self.db
 
     def handleClient(self, request: Request, client: Client):
         print("Client connected from", client.clientAddress)
@@ -57,7 +56,9 @@ class BusinessLogic:
                 response = Response.error("Hello, World!")
 
         if response is None:
-            response = Response.error("Please check your request and try again",)
+            response = Response.error(
+                "Please check your request and try again",
+            )
 
         # response.setHeader("CTF", Config.CTF_FLAG)
         response.setHeader("Access-Control-Allow-Origin", "*")
@@ -71,15 +72,13 @@ class BusinessLogic:
         if not RequestValidator.register(request):
             return Response.error("Invalid request")
 
-        user = (
-            self.usersTable.select("*")
-            .where(
-                operator="OR",
-                email=request.payload["email"],
-                username=request.payload["username"],
-            )
-            .execute(fetchType=FetchType.ONE)
-        )
+        user = self.db.execute(
+            "SELECT * FROM users WHERE email = ? OR username = ?",
+            (
+                request.payload["email"],
+                request.payload["username"],
+            ),
+        ).fetchOne()
 
         if user is not None:
             return Response.error(
@@ -89,27 +88,31 @@ class BusinessLogic:
 
         token = uuid.uuid4().hex
 
-        self.usersTable.insert(
-            email=request.payload["email"],
-            username=request.payload["username"],
-            password=request.payload["password"],
-            token=token
-        ).execute()
+        self.db.execute(
+            "INSERT INTO users (email, username, password token) VAlUES (?, ?, ?, ?)",
+            (
+                request.payload["email"],
+                request.payload["username"],
+                request.payload["password"],
+                token,
+            ),
+        )
 
-        return Response.success('Registered Successfully').setHeader('Set-Cookie', f"Token={token}")
-    
+        return Response.success("Registered Successfully").setHeader(
+            "Set-Cookie", f"Token={token}"
+        )
+
     def login(self, request: Request) -> Response:
         if not RequestValidator.login(request):
             return Response.error("Invalid request")
 
-        user = (
-            self.usersTable.select("*")
-            .where(
-                username=request.payload["username"],
-                password=request.payload["password"],
-            )
-            .execute(fetchType=FetchType.ONE)
-        )
+        user = self.db.execute(
+            "SELECT * FROM users WHERE username = ? AND password = ?",
+            (
+                request.payload["username"],
+                request.payload["password"],
+            ),
+        ).fetchOne()
 
         if user is None:
             return Response.error(
@@ -117,46 +120,41 @@ class BusinessLogic:
                 statusCode=Response.StatusCode.OK,
             )
 
-        return Response.success("Logged in successfully!").setHeader('Set-Cookie', f"Token={user['token']}")
+        return Response.success("Logged in successfully!").setHeader(
+            "Set-Cookie", f"Token={user['token']}"
+        )
 
     @RequestValidator.authenticated
     def wishlist(self, request: Request) -> Response:
-        wishlist = (
-            self.wishlistsTable.select("productID")
-            .where(
-                username=request.user['username']
-            )
-            .execute(fetchType=FetchType.ALL)
-        )
+        wishlist = self.db.execute(
+            "SELECT productID FROM wishlists WHERE username = ?",
+            (request.user["username"],),
+        ).fetchAll()
 
+        print(wishlist)
         wishlist = list(map(lambda x: x[0], wishlist))
 
-        time.sleep(10)
-        return Response.success(wishlist)
-    
+        print(wishlist)
+        return Response.success(wishlist, vprint=True)
+
     @RequestValidator.authenticated
     def product(self, request: Request) -> Response:
-        product = (
-            self.productsTable.select("*")
-            .where(
-                productID=request.url[1]
-            )
-            .execute(fetchType=FetchType.ONE)
-        )
+        product = self.db.execute(
+            "SELECT * FROM products WHERE productID = ?", (request.url[1],)
+        ).fetchOne()
 
         if product == None:
             return Response.error("Product not found!")
-            
-        with open(f"./database/images/{product['productID']}.jpg", 'rb') as im:
-            image = base64.b64encode(im.read()).decode('utf-8')
-        
-        product = {
-            'productID': product['productID'],
-            'title': product['title'],
-            'description': product['description'],
-            'price': product['price'],
-            'image': image,
-        }
 
+        with open(f"./database/images/{product['productID']}.jpg", "rb") as im:
+            image = base64.b64encode(im.read()).decode("utf-8")
+
+        product = {
+            "productID": product["productID"],
+            "title": product["title"],
+            "description": product["description"],
+            "price": product["price"],
+            "image": image,
+        }
 
         return Response.success(product)

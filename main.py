@@ -1,4 +1,4 @@
-from httpLib.server import Server
+from network.server import Server
 from config import Config
 from businessLogic.businessLogic import BusinessLogic
 
