@@ -29,9 +29,6 @@ class BusinessLogic:
     def initDatabase(self) -> None:
         self.db = Database.getInstance()
 
-    def getDatabase(self) -> "Database":
-        return self.db
-
     def handleClient(self, request: Request, client: Client):
         print("Client connected from", client.clientAddress)
 
@@ -131,11 +128,33 @@ class BusinessLogic:
             (request.user["username"],),
         ).fetchAll()
 
-        print(wishlist)
-        wishlist = list(map(lambda x: x[0], wishlist))
+        products = []
 
-        print(wishlist)
-        return Response.success(wishlist, vprint=True)
+        for p in wishlist:
+            product = self.db.execute(
+                "SELECT * FROM products WHERE productID = ?", (p["productID"],)
+            ).fetchOne()
+
+            if product == None:
+                self.db.execute(
+                    "DELETE FROM wishlists WHERE productID = ?", (p["productID"],)
+                )
+                continue
+
+            with open(f"./database/images/{product['productID']}.jpg", "rb") as im:
+                image = base64.b64encode(im.read()).decode("utf-8")
+
+            product = {
+                "productID": product["productID"],
+                "title": product["title"],
+                "description": product["description"],
+                "price": product["price"],
+                "image": image,
+            }
+
+            products.append(product)
+
+        return Response.success(products)
 
     @RequestValidator.authenticated
     def product(self, request: Request) -> Response:

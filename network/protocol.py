@@ -195,12 +195,7 @@ class Response:
     def success(
         message: str | dict | list,
         statusCode: StatusCode = StatusCode.OK,
-        vprint: bool = False,
     ) -> "Response":
-        if vprint:
-            print(message)
-            print(type(message))
-
         return Response(
             content={"success": True, "message": message},
             contentType=Response.ContentType.JSON,
