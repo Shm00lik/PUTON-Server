@@ -8,7 +8,6 @@ import base64
 import uuid
 import time
 
-
 class BusinessLogic:
     __instance = None
 
@@ -33,30 +32,13 @@ class BusinessLogic:
         print("Client connected from", client.clientAddress)
 
         requestType = RequestType.fromUrl(request.url)
-        response: Response | None = None
+        response: Response = None
 
-        if request.method == Request.RequestMethod.POST:
-            if requestType == RequestType.REGISTER:
-                response = self.register(request)
-
-            elif requestType == RequestType.LOGIN:
-                response = self.login(request)
-
-        elif request.method == Request.RequestMethod.GET:
-            if requestType == RequestType.WISHLIST:
-                response = self.wishlist(request)
-
-            elif requestType == RequestType.PRODUCT:
-                response = self.product(request)
-
-            else:
-                response = Response.error("Hello, World!")
-
-        if response is None:
-            response = Response.error(
-                "Please check your request and try again",
-            )
-
+        if (request.method == Request.RequestMethod.OPTIONS):
+            response = Response.success("OPTIONS!")
+        else:
+            response = getattr(self, requestType.value)(request)
+        
         # response.setHeader("CTF", Config.CTF_FLAG)
         response.setHeader("Access-Control-Allow-Origin", "*")
         response.setHeader("Access-Control-Allow-Headers", "*")
@@ -65,9 +47,16 @@ class BusinessLogic:
         # print(response)
         client.send(response)
 
+    def unknown(self, request: Request) -> Response:
+        return Response.error("Please check your request and try again")
+    
+    @RequestValidator.authenticated
+    def me(self, request: Request) -> Response:
+        return Response.success({"username": request.user["username"]})
+    
     def register(self, request: Request) -> Response:
         if not RequestValidator.register(request):
-            return Response.error("Invalid request")
+            return Response.error("Invalid Request")
 
         user = self.db.execute(
             "SELECT * FROM users WHERE email = ? OR username = ?",
@@ -101,7 +90,7 @@ class BusinessLogic:
 
     def login(self, request: Request) -> Response:
         if not RequestValidator.login(request):
-            return Response.error("Invalid request")
+            return Response.error("Invalid Request")
 
         user = self.db.execute(
             "SELECT * FROM users WHERE username = ? AND password = ?",
@@ -117,9 +106,7 @@ class BusinessLogic:
                 statusCode=Response.StatusCode.OK,
             )
 
-        return Response.success("Logged in successfully!").setHeader(
-            "Set-Cookie", f"Token={user['token']}"
-        )
+        return Response.success({"token": user['token']})
 
     @RequestValidator.authenticated
     def wishlist(self, request: Request) -> Response:

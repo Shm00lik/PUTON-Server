@@ -8,6 +8,7 @@ class RequestType(Enum):
     LOGIN = "login"
     WISHLIST = "wishlist"
     PRODUCT = "product"
+    ME = "me"
     
     @staticmethod
     def fromUrl(url: list[str]) -> "RequestType":

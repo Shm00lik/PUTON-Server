@@ -13,11 +13,14 @@ class RequestValidator:
 
     @staticmethod
     def authenticated(func):
-        def wrapper(self, request):
+        def wrapper(self, request: Request):
+            if "token" not in request.headers:
+                return Response.error("Not Authenticated")
+            
             user = (
                 Database.getInstance()
                 .execute(
-                    "SELECT * FROM users WHERE token = ?", (request.headers["Token"],)
+                    "SELECT * FROM users WHERE token = ?", (request.headers["token"], )
                 )
                 .fetchOne()
             )
