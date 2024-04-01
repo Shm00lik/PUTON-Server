@@ -2,43 +2,37 @@ from network.client import Client
 from network.protocol import Request, Response
 from config import Config
 from database.database import Database
-from .requestType import RequestType
+from .routesHandler import RoutesHandler
 from .requestValidator import RequestValidator
 import base64
 import uuid
 import time
 
+
 class BusinessLogic:
-    __instance = None
+    __instance: "BusinessLogic | None" = None
 
-    @staticmethod
-    def getInstance() -> "BusinessLogic":
-        if BusinessLogic.__instance == None:
-            BusinessLogic.__instance = BusinessLogic()
+    @classmethod
+    def getInstance(cls) -> "BusinessLogic":
+        if cls.__instance == None:
+            cls.__instance = cls()
 
-        return BusinessLogic.__instance
+        return cls.__instance
 
     def __init__(self) -> None:
         if BusinessLogic.__instance != None:
             raise Exception("This class is a singleton!")
         else:
             BusinessLogic.__instance = self
-            self.initDatabase()
-
-    def initDatabase(self) -> None:
-        self.db = Database.getInstance()
 
     def handleClient(self, request: Request, client: Client):
         print("Client connected from", client.clientAddress)
 
-        requestType = RequestType.fromUrl(request.url)
-        response: Response = None
-
-        if (request.method == Request.RequestMethod.OPTIONS):
-            response = Response.success("OPTIONS!")
+        if request.method == Request.RequestMethod.OPTIONS:
+            response: Response = Response.success("OPTIONS!")
         else:
-            response = getattr(self, requestType.value)(request)
-        
+            response: Response = RoutesHandler.handle(request)(request)
+
         # response.setHeader("CTF", Config.CTF_FLAG)
         response.setHeader("Access-Control-Allow-Origin", "*")
         response.setHeader("Access-Control-Allow-Headers", "*")
@@ -47,24 +41,29 @@ class BusinessLogic:
         # print(response)
         client.send(response)
 
-    def unknown(self, request: Request) -> Response:
-        return Response.error("Please check your request and try again")
-    
+    @staticmethod
+    @RoutesHandler.route("/me", Request.RequestMethod.GET)
     @RequestValidator.authenticated
-    def me(self, request: Request) -> Response:
+    def me(request: Request) -> Response:
         return Response.success({"username": request.user["username"]})
-    
-    def register(self, request: Request) -> Response:
+
+    @staticmethod
+    @RoutesHandler.route("/register", Request.RequestMethod.POST)
+    def register(request: Request) -> Response:
         if not RequestValidator.register(request):
             return Response.error("Invalid Request")
 
-        user = self.db.execute(
-            "SELECT * FROM users WHERE email = ? OR username = ?",
-            (
-                request.payload["email"],
-                request.payload["username"],
-            ),
-        ).fetchOne()
+        user = (
+            Database.getInstance()
+            .execute(
+                "SELECT * FROM users WHERE email = ? OR username = ?",
+                (
+                    request.payload["email"],
+                    request.payload["username"],
+                ),
+            )
+            .fetchOne()
+        )
 
         if user is not None:
             return Response.error(
@@ -74,7 +73,7 @@ class BusinessLogic:
 
         token = uuid.uuid4().hex
 
-        self.db.execute(
+        Database.getInstance().execute(
             "INSERT INTO users (email, username, password token) VAlUES (?, ?, ?, ?)",
             (
                 request.payload["email"],
@@ -88,17 +87,23 @@ class BusinessLogic:
             "Set-Cookie", f"Token={token}"
         )
 
-    def login(self, request: Request) -> Response:
+    @staticmethod
+    @RoutesHandler.route("/login", Request.RequestMethod.POST)
+    def login(request: Request) -> Response:
         if not RequestValidator.login(request):
             return Response.error("Invalid Request")
 
-        user = self.db.execute(
-            "SELECT * FROM users WHERE username = ? AND password = ?",
-            (
-                request.payload["username"],
-                request.payload["password"],
-            ),
-        ).fetchOne()
+        user = (
+            Database.getInstance()
+            .execute(
+                "SELECT * FROM users WHERE username = ? AND password = ?",
+                (
+                    request.payload["username"],
+                    request.payload["password"],
+                ),
+            )
+            .fetchOne()
+        )
 
         if user is None:
             return Response.error(
@@ -106,24 +111,34 @@ class BusinessLogic:
                 statusCode=Response.StatusCode.OK,
             )
 
-        return Response.success({"token": user['token']})
+        return Response.success({"token": user["token"]})
 
+    @staticmethod
+    @RoutesHandler.route("/wishlist", Request.RequestMethod.GET)
     @RequestValidator.authenticated
-    def wishlist(self, request: Request) -> Response:
-        wishlist = self.db.execute(
-            "SELECT productID FROM wishlists WHERE username = ?",
-            (request.user["username"],),
-        ).fetchAll()
+    def wishlist(request: Request) -> Response:
+        wishlist = (
+            Database.getInstance()
+            .execute(
+                "SELECT productID FROM wishlists WHERE username = ?",
+                (request.user["username"],),
+            )
+            .fetchAll()
+        )
 
         products = []
 
         for p in wishlist:
-            product = self.db.execute(
-                "SELECT * FROM products WHERE productID = ?", (p["productID"],)
-            ).fetchOne()
+            product = (
+                Database.getInstance()
+                .execute(
+                    "SELECT * FROM products WHERE productID = ?", (p["productID"],)
+                )
+                .fetchOne()
+            )
 
             if product == None:
-                self.db.execute(
+                Database.getInstance().execute(
                     "DELETE FROM wishlists WHERE productID = ?", (p["productID"],)
                 )
                 continue
@@ -143,11 +158,15 @@ class BusinessLogic:
 
         return Response.success(products)
 
+    @staticmethod
+    @RoutesHandler.route("/product/:id", Request.RequestMethod.GET)
     @RequestValidator.authenticated
-    def product(self, request: Request) -> Response:
-        product = self.db.execute(
-            "SELECT * FROM products WHERE productID = ?", (request.url[1],)
-        ).fetchOne()
+    def product(request: Request) -> Response:
+        product = (
+            Database.getInstance()
+            .execute("SELECT * FROM products WHERE productID = ?", (request.url[1],))
+            .fetchOne()
+        )
 
         if product == None:
             return Response.error("Product not found!")
@@ -164,3 +183,6 @@ class BusinessLogic:
         }
 
         return Response.success(product)
+
+    @staticmethod
+    @RoutesHandler.route("")

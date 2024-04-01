@@ -6,12 +6,12 @@ import threading
 class Database(sqlite3.Connection):
     __instance = None
 
-    @staticmethod
-    def getInstance() -> "Database":
-        if Database.__instance == None:
-            Database.__instance = Database(Config.DATABASE_PATH)
+    @classmethod
+    def getInstance(cls) -> "Database":
+        if cls.__instance == None:
+            cls.__instance = cls(Config.DATABASE_PATH)
 
-        return Database.__instance
+        return cls.__instance
 
     def __init__(self, databasePath: str, *args, **kwargs) -> None:
         if Database.__instance != None:
