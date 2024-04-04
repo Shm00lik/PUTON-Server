@@ -185,4 +185,6 @@ class BusinessLogic:
         return Response.success(product)
 
     @staticmethod
-    @RoutesHandler.route("")
+    @RoutesHandler.route("/", Request.RequestMethod.GET)
+    def index(request: Request) -> Response:
+        return Response.success("Hello World")
