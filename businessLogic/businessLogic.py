@@ -188,3 +188,8 @@ class BusinessLogic:
     @RoutesHandler.route("/", Request.RequestMethod.GET)
     def index(request: Request) -> Response:
         return Response.success("Hello World")
+
+    @staticmethod
+    @RoutesHandler.route("/ping", Request.RequestMethod.POST)
+    def ping(request: Request) -> Response:
+        return Response.success(str(time.time()))
