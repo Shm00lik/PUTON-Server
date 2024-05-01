@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Live Video Stream with Person Detection</title>
+        <script src="https://docs.opencv.org/master/opencv.js"></script>
+    </head>
+    <body>
+        <h1>Live Video Stream with Person Detection</h1>
+        <video id="video" width="640" height="480" autoplay></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+
+        <script>
+            // Initialize OpenCV.js
+            cv.onRuntimeInitialized = () => {
+                // Load pre-trained Haar cascade for upper body detection
+                const upperBodyCascadeFile = "./haarcascade_upperbody.xml";
+                console.log("ASD");
+
+                const upperBodyClassifier = new cv.CascadeClassifier();
+                console.log("ASD");
+
+                fetch(upperBodyCascadeFile)
+                    .then((response) => response.text())
+                    .then((data) => {
+                        cv.FS_createDataFile(
+                            "/",
+                            "./haarcascade_upperbody.xml",
+                            data,
+                            true,
+                            false
+                        );
+                    })
+                    .catch((error) =>
+                        console.error("Error loading file:", error)
+                    );
+
+                console.log("ASD");
+                upperBodyClassifier.load("./haarcascade_upperbody.xml");
+                console.log("ASD");
+                // Access the camera stream
+                navigator.mediaDevices
+                    .getUserMedia({ video: true })
+                    .then(function (stream) {
+                        const video = document.getElementById("video");
+                        video.srcObject = stream;
+
+                        // Process each frame of the video stream
+                        const canvas = document.getElementById("canvas");
+                        const context = canvas.getContext("2d");
+                        setInterval(() => {
+                            // Capture the current frame from the video
+                            context.drawImage(
+                                video,
+                                0,
+                                0,
+                                canvas.width,
+                                canvas.height
+                            );
+                            const imageData = context.getImageData(
+                                0,
+                                0,
+                                canvas.width,
+                                canvas.height
+                            );
+
+                            // Convert the image data to OpenCV Mat format
+                            const src = cv.matFromImageData(imageData);
+
+                            // Perform upper body detection
+                            const upperBodies = new cv.RectVector();
+                            const scaleFactor = 1.1;
+                            const minNeighbors = 3;
+                            upperBodyClassifier.detectMultiScale(
+                                src,
+                                upperBodies,
+                                scaleFactor,
+                                minNeighbors,
+                                0,
+                                0
+                            );
+
+                            // Draw rectangles around detected upper bodies
+                            const color = new cv.Scalar(0, 255, 0, 255);
+                            for (let i = 0; i < upperBodies.size(); ++i) {
+                                const rect = upperBodies.get(i);
+                                const point1 = new cv.Point(rect.x, rect.y);
+                                const point2 = new cv.Point(
+                                    rect.x + rect.width,
+                                    rect.y + rect.height
+                                );
+                                cv.rectangle(src, point1, point2, color, 2);
+                            }
+
+                            // Update the canvas with the annotated frame
+                            context.putImageData(
+                                new ImageData(
+                                    new Uint8ClampedArray(src.data),
+                                    src.cols,
+                                    src.rows
+                                ),
+                                0,
+                                0
+                            );
+
+                            // Clean up
+                            src.delete();
+                            upperBodies.delete();
+                        }, 100); // Adjust the interval as needed (e.g., 100 milliseconds)
+                    })
+                    .catch(function (error) {
+                        console.error("Error accessing the camera: ", error);
+                    });
+            };
+        </script>
+    </body>
+</html>
