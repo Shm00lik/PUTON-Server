@@ -1,6 +1,5 @@
 from network.client import Client
 from network.protocol import Request, Response
-from config import Config
 from database.database import Database
 from .routesHandler import RoutesHandler
 from .requestValidator import RequestValidator
@@ -33,7 +32,6 @@ class BusinessLogic:
         else:
             response: Response = RoutesHandler.handle(request)(request)
 
-        # response.setHeader("CTF", Config.CTF_FLAG)
         response.setHeader("Access-Control-Allow-Origin", "*")
         response.setHeader("Access-Control-Allow-Headers", "*")
         response.setHeader("Access-Control-Allow-Methods", "*")
@@ -187,7 +185,7 @@ class BusinessLogic:
     @staticmethod
     @RoutesHandler.route("/", Request.RequestMethod.GET)
     def index(request: Request) -> Response:
-        return Response.success("Hello World")
+        return Response.success("Hello World!")
 
     @staticmethod
     @RoutesHandler.route("/ping", Request.RequestMethod.POST)
