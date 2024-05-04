@@ -6,6 +6,7 @@ from .requestValidator import RequestValidator
 import base64
 import uuid
 import time
+import hashlib
 
 
 class BusinessLogic:
@@ -30,6 +31,7 @@ class BusinessLogic:
         if request.method == Request.RequestMethod.OPTIONS:
             response: Response = Response.success("OPTIONS!")
         else:
+            print(request.url)
             response: Response = RoutesHandler.handle(request)(request)
 
         response.setHeader("Access-Control-Allow-Origin", "*")
@@ -55,10 +57,7 @@ class BusinessLogic:
             Database.getInstance()
             .execute(
                 "SELECT * FROM users WHERE email = ? OR username = ?",
-                (
-                    request.payload["email"],
-                    request.payload["username"],
-                ),
+                (request.payload["email"], request.payload["username"]),
             )
             .fetchOne()
         )
@@ -70,20 +69,20 @@ class BusinessLogic:
             )
 
         token = uuid.uuid4().hex
+        hasher = hashlib.sha256()
+        hasher.update(request.payload["password"].encode())
 
         Database.getInstance().execute(
-            "INSERT INTO users (email, username, password token) VAlUES (?, ?, ?, ?)",
+            "INSERT INTO users (email, username, password, token) VAlUES (?, ?, ?, ?)",
             (
                 request.payload["email"],
                 request.payload["username"],
-                request.payload["password"],
+                hasher.hexdigest(),
                 token,
             ),
         )
 
-        return Response.success("Registered Successfully").setHeader(
-            "Set-Cookie", f"Token={token}"
-        )
+        return Response.success({"token": token})
 
     @staticmethod
     @RoutesHandler.route("/login", Request.RequestMethod.POST)
@@ -169,7 +168,7 @@ class BusinessLogic:
         if product == None:
             return Response.error("Product not found!")
 
-        with open(f"./database/images/{product['productID']}.jpg", "rb") as im:
+        with open(f"./database/images/{product['productID']}.png", "rb") as im:
             image = base64.b64encode(im.read()).decode("utf-8")
 
         product = {
@@ -177,6 +176,10 @@ class BusinessLogic:
             "title": product["title"],
             "description": product["description"],
             "price": product["price"],
+            "leftEyeX": product["leftEyeX"],
+            "leftEyeY": product["leftEyeY"],
+            "rightEyeX": product["rightEyeX"],
+            "rightEyeY": product["rightEyeY"],
             "image": image,
         }
 
