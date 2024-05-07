@@ -45,7 +45,9 @@ class BusinessLogic:
     @RoutesHandler.route("/me", Request.RequestMethod.GET)
     @RequestValidator.authenticated
     def me(request: Request) -> Response:
-        return Response.success({"username": request.user["username"]})
+        return Response.success(
+            {"username": request.user["username"], "email": request.user["email"]}
+        )
 
     @staticmethod
     @RoutesHandler.route("/register", Request.RequestMethod.POST)
@@ -140,7 +142,7 @@ class BusinessLogic:
                 )
                 continue
 
-            with open(f"./database/images/{product['productID']}.jpg", "rb") as im:
+            with open(f"./database/images/{product['productID']}.png", "rb") as im:
                 image = base64.b64encode(im.read()).decode("utf-8")
 
             product = {
@@ -149,11 +151,45 @@ class BusinessLogic:
                 "description": product["description"],
                 "price": product["price"],
                 "image": image,
+                "inWishlist": True,
             }
 
             products.append(product)
 
         return Response.success(products)
+
+    @staticmethod
+    @RoutesHandler.route("/wishlistProduct", Request.RequestMethod.POST)
+    @RequestValidator.authenticated
+    def wishlistProduct(request: Request) -> Response:
+        if not RequestValidator.wishlistProduct(request):
+            return Response.error("Invalid Request")
+
+        isInWishlist = (
+            Database.getInstance()
+            .execute(
+                "SELECT * FROM wishlists WHERE username = ? AND productID = ?",
+                (request.user["username"], request.payload["id"]),
+            )
+            .fetchOne()
+            != None
+        )
+
+        if isInWishlist:
+            Database.getInstance().execute(
+                "DELETE FROM wishlists WHERE username = ? AND productID = ?",
+                (request.user["username"], request.payload["id"]),
+            )
+
+        else:
+            Database.getInstance().execute(
+                "INSERT INTO wishlists (productID, username) VALUES (?, ?)",
+                (request.payload["id"], request.user["username"]),
+            )
+
+        return Response.success(
+            ("Removed From " if isInWishlist else "Added To") + " Wishlist."
+        )
 
     @staticmethod
     @RoutesHandler.route("/product/:id", Request.RequestMethod.GET)
@@ -168,6 +204,16 @@ class BusinessLogic:
         if product == None:
             return Response.error("Product not found!")
 
+        isInWishlist = (
+            Database.getInstance()
+            .execute(
+                "SELECT * FROM wishlists WHERE username = ? AND productID = ?",
+                (request.user["username"], request.url[1]),
+            )
+            .fetchOne()
+            != None
+        )
+
         with open(f"./database/images/{product['productID']}.png", "rb") as im:
             image = base64.b64encode(im.read()).decode("utf-8")
 
@@ -176,14 +222,57 @@ class BusinessLogic:
             "title": product["title"],
             "description": product["description"],
             "price": product["price"],
+            "image": image,
+            "inWishlist": isInWishlist,
             "leftEyeX": product["leftEyeX"],
             "leftEyeY": product["leftEyeY"],
             "rightEyeX": product["rightEyeX"],
             "rightEyeY": product["rightEyeY"],
-            "image": image,
         }
 
         return Response.success(product)
+
+    @staticmethod
+    @RoutesHandler.route("/products", Request.RequestMethod.GET)
+    @RequestValidator.authenticated
+    def products(request: Request) -> Response:
+        if not RequestValidator.products(request):
+            return Response.error("Invalid Request")
+
+        ps = (
+            Database.getInstance()
+            .execute(
+                "SELECT * FROM products ORDER BY productID LIMIT ? OFFSET ?",
+                (
+                    request.params["amount"],
+                    int(request.params["page"]) * int(request.params["amount"]),
+                ),
+            )
+            .fetchAll()
+        )
+
+        products = []
+
+        for p in ps:
+            with open(f"./database/images/{p['productID']}.png", "rb") as im:
+                image = base64.b64encode(im.read()).decode("utf-8")
+
+            product = {
+                "productID": p["productID"],
+                "title": p["title"],
+                "description": p["description"],
+                "price": p["price"],
+                "image": image,
+                "inWishlist": False,
+                "leftEyeX": p["leftEyeX"],
+                "leftEyeY": p["leftEyeY"],
+                "rightEyeX": p["rightEyeX"],
+                "rightEyeY": p["rightEyeY"],
+            }
+
+            products.append(product)
+
+        return Response.success(products)
 
     @staticmethod
     @RoutesHandler.route("/", Request.RequestMethod.GET)

@@ -12,6 +12,14 @@ class RequestValidator:
         return "username" in request.payload and "password" in request.payload
 
     @staticmethod
+    def wishlistProduct(request: Request) -> bool:
+        return "id" in request.payload
+
+    @staticmethod
+    def products(request: Request) -> bool:
+        return "amount" in request.params and "page" in request.params
+
+    @staticmethod
     def authenticated(func):
         def wrapper(request: Request):
             if "token" not in request.headers:
