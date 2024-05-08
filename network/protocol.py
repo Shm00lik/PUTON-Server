@@ -1,4 +1,5 @@
 from enum import Enum
+from network.encryption.AES import AES
 import json
 
 
@@ -131,16 +132,17 @@ class Response:
         contentType: ContentType = ContentType.TEXT,
         statusCode: StatusCode = StatusCode.OK,
         headers: dict[str, str] = {},
+        key: str = "",
     ) -> None:
         self.headers: dict[str, str] = headers
         self.content: str = ""
-
+        self.key = key
         self.setContent(content, contentType)
 
         self.statusCode: Response.StatusCode = statusCode
 
     def setContent(
-        self, content: str | dict | list, contentType: ContentType
+        self, content: str | dict | list, contentType: ContentType = ContentType.TEXT
     ) -> "Response":
         if contentType == Response.ContentType.JSON:
             self.setHeader("Content-Type", "application/json")
@@ -169,11 +171,17 @@ class Response:
         return self
 
     def generate(self) -> str:
+        self.setContent(
+            AES.encrypt(self.content, self.key) if self.key != "" else self.content
+        )
+
         response: str = "HTTP/1.1 " + str(self.statusCode) + "\r\n"
 
         response += "\r\n".join(
             [f"{key}: {value}" for key, value in self.headers.items()]
         )
+
+        print()
 
         if len(self.content) > 0:
             response += "\r\n\r\n" + self.content
@@ -195,11 +203,13 @@ class Response:
     def success(
         message: str | dict | list,
         statusCode: StatusCode = StatusCode.OK,
+        key: str = "",
     ) -> "Response":
         return Response(
             content={"success": True, "message": message},
             contentType=Response.ContentType.JSON,
             statusCode=statusCode,
+            key=key,
         )
 
     def __str__(self) -> str:

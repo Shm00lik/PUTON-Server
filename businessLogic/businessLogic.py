@@ -1,5 +1,7 @@
 from network.client import Client
+from network.encryption.diffieHellman import DiffieHellman, DiffieHellmanState
 from network.protocol import Request, Response
+from network.encryption.AES import AES
 from database.database import Database
 from .routesHandler import RoutesHandler
 from .requestValidator import RequestValidator
@@ -45,8 +47,21 @@ class BusinessLogic:
     @RoutesHandler.route("/me", Request.RequestMethod.GET)
     @RequestValidator.authenticated
     def me(request: Request) -> Response:
+        sharedKey = (
+            Database.getInstance()
+            .execute(
+                "SELECT sharedKey FROM encryption WHERE encryptionToken = ?",
+                (request.headers["encryptionToken"],),
+            )
+            .fetchOne()
+        )
+
+        if sharedKey is None:
+            return Response.error("Invalid Request")
+
         return Response.success(
-            {"username": request.user["username"], "email": request.user["email"]}
+            {"username": request.user["username"], "email": request.user["email"]},
+            key=sharedKey["sharedKey"],
         )
 
     @staticmethod
@@ -71,15 +86,13 @@ class BusinessLogic:
             )
 
         token = uuid.uuid4().hex
-        hasher = hashlib.sha256()
-        hasher.update(request.payload["password"].encode())
 
         Database.getInstance().execute(
             "INSERT INTO users (email, username, password, token) VAlUES (?, ?, ?, ?)",
             (
                 request.payload["email"],
                 request.payload["username"],
-                hasher.hexdigest(),
+                request.payload["password"],
                 token,
             ),
         )
@@ -283,3 +296,37 @@ class BusinessLogic:
     @RoutesHandler.route("/ping", Request.RequestMethod.POST)
     def ping(request: Request) -> Response:
         return Response.success(str(time.time()))
+
+    @staticmethod
+    @RoutesHandler.route("/handshake/init", Request.RequestMethod.POST)
+    def handshakeInit(request: Request) -> Response:
+        if not RequestValidator.handshake(request, DiffieHellmanState.INITIALIZING):
+            return Response.error("Invalid Request")
+
+        print(DiffieHellman.get_public_params())
+
+        return Response.success(DiffieHellman.get_public_params())
+
+    @staticmethod
+    @RoutesHandler.route("/handshake/exchange", Request.RequestMethod.POST)
+    def handshakeExchange(request: Request) -> Response:
+        if not RequestValidator.handshake(request, DiffieHellmanState.EXCHANGING_KEYS):
+            return Response.error("Invalid Request")
+
+        serverPrivateKey = DiffieHellman.generate_private_key()
+        sharedDiffieHellmanKey = DiffieHellman.generate_shared_key(
+            int(request.payload["publicKey"]), serverPrivateKey
+        )
+
+        sharedKey = hashlib.sha256(str(sharedDiffieHellmanKey).encode()).hexdigest()
+
+        Database.getInstance().execute(
+            "INSERT INTO encryption (encryptionToken, serverPrivateKey, sharedKey) VALUES (?, ?, ?)",
+            (request.payload["encryptionToken"], serverPrivateKey, sharedKey),
+        )
+
+        print("Created shared key: " + sharedKey)
+
+        return Response.success(
+            {"serverPublicKey": DiffieHellman.generate_public_key(serverPrivateKey)}
+        )

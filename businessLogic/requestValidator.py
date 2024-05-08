@@ -1,4 +1,5 @@
 from network.protocol import Request, Response
+from network.encryption.diffieHellman import DiffieHellmanState
 from database.database import Database
 
 
@@ -18,6 +19,18 @@ class RequestValidator:
     @staticmethod
     def products(request: Request) -> bool:
         return "amount" in request.params and "page" in request.params
+
+    @staticmethod
+    def handshake(request: Request, state: DiffieHellmanState) -> bool:
+        if state == DiffieHellmanState.INITIALIZING:
+            return "encryptionToken" in request.payload
+
+        elif state == DiffieHellmanState.EXCHANGING_KEYS:
+            return (
+                "publicKey" in request.payload and "encryptionToken" in request.payload
+            )
+
+        return False
 
     @staticmethod
     def authenticated(func):
