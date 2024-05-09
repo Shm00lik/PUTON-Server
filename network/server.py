@@ -1,6 +1,7 @@
 import socket
 import threading
-
+import json
+import utils.utils as utils
 from .endpoint import Endpoint
 from .router import Router
 from .protocol import Request, Response
@@ -120,6 +121,10 @@ class Server:
             encryption_key = self.get_encryption_key(encryption_token)
 
             request.body = AES.decrypt(request.body, encryption_key)
+
+            request.payload = (
+                json.loads(request.body) if utils.is_json(request.body) else {}
+            )
 
     def after_handle(
         self, request: Request, response: Response, endpoint: Endpoint

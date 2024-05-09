@@ -9,25 +9,26 @@ from network.data import Data
 def register(request: Request) -> bool:
     return "username" in request.payload and "password" in request.payload
 
+
 def login(request: Request) -> bool:
     return "username" in request.payload and "password" in request.payload
+
 
 def wishlist_product(request: Request) -> bool:
     return "id" in request.payload
 
+
 def products(request: Request) -> bool:
     return "amount" in request.params and "page" in request.params
+
 
 def handshake(request: Request, state: DiffieHellmanState) -> bool:
     if state == DiffieHellmanState.INITIALIZING:
         return "encryptionToken" in request.payload
 
     elif state == DiffieHellmanState.EXCHANGING_KEYS:
-        return (
-            "publicKey" in request.payload and "encryptionToken" in request.payload
-        )
+        return "publicKey" in request.payload and "encryptionToken" in request.payload
 
-    return False
 
 def authenticated(handler: Callable[[Data], Response]):
     def wrapper(data: Data):

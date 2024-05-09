@@ -31,7 +31,6 @@ class Product:
         title: str,
         description: str,
         price: float,
-        is_in_wishlist: bool,
         left_eye_data: dict[str, int],
         right_eye_data: dict[str, int],
     ) -> None:
@@ -39,7 +38,6 @@ class Product:
         self.title = title
         self.description = description
         self.price = price
-        self.is_in_wishlist = is_in_wishlist
         self.left_eye_data = left_eye_data
         self.right_eye_data = right_eye_data
 
@@ -59,7 +57,6 @@ class Product:
                 "description": self.description,
                 "price": self.price,
                 "image": self.image,
-                "inWishlist": self.is_in_wishlist,
                 "leftEyeX": self.left_eye_data["x"],
                 "leftEyeY": self.left_eye_data["y"],
                 "rightEyeX": self.right_eye_data["x"],
@@ -72,7 +69,6 @@ class Product:
             "description": self.description,
             "price": self.price,
             "image": self.image,
-            "inWishlist": self.is_in_wishlist,
         }
 
     @staticmethod
@@ -82,7 +78,6 @@ class Product:
             title=product["title"],
             description=product["description"],
             price=product["price"],
-            is_in_wishlist=True,
             left_eye_data={"x": product["leftEyeX"], "y": product["leftEyeY"]},
             right_eye_data={"x": product["rightEyeX"], "y": product["rightEyeY"]},
         )

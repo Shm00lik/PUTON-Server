@@ -1,4 +1,5 @@
 from enum import Enum
+import utils.utils as utils
 import json
 
 
@@ -85,7 +86,9 @@ class Request:
         # Parse body and payload for POST requests (assuming JSON)
         if method == HTTPMethod.POST and lines[-1]:
             body = lines[-1]
-            payload = json.loads(body)
+
+            if utils.is_json(body):
+                payload = json.loads(body)
 
         return Request(
             method=method,
@@ -93,6 +96,7 @@ class Request:
             params=params,
             path_variables=path_variables,
             headers=headers,
+            body=body,
             payload=payload,
         )
 
@@ -138,6 +142,11 @@ class Response:
         if isinstance(data, dict):
             return Response(
                 body={"success": True, **data},
+            )
+
+        if isinstance(data, list):
+            return Response(
+                body={"success": True, "data": data},
             )
 
         return Response(
