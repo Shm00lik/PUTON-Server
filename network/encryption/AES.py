@@ -1,9 +1,7 @@
-import hashlib
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
+import hashlib
 
 
 class AES:
@@ -13,9 +11,6 @@ class AES:
         padder = padding.PKCS7(128).padder()
         padded_data = padder.update(message.encode())
         padded_data += padder.finalize()
-
-        # Generate a random IV (Initialization Vector)
-        iv = b"\x00" * 16  # You should generate a random IV in real-world scenarios
 
         # Create an AES cipher object
         cipher = Cipher(
@@ -46,17 +41,25 @@ class AES:
             + decryptor.finalize()
         )
 
-        # Unpad the decrypted data
-        unpadder = padding.PKCS7(128).unpadder()
-        data = unpadder.update(padded_data)
-        data += unpadder.finalize()
+        try:
+            # Unpad the decrypted data
+            unpadder = padding.PKCS7(128).unpadder()
+            data = unpadder.update(padded_data)
+            data += unpadder.finalize()
+        except:
+            return data.decode("utf-8")
 
         return data.decode("utf-8")
 
+    @staticmethod
+    def diffie_hellman_key_to_aes_key(diffie_hellman_key: int) -> str:
+        return hashlib.sha256(str(diffie_hellman_key).encode()).hexdigest()
 
-print(
-    AES.decrypt(
-        "7afab9c2d6be776f47e7e9203c1bfda1d1fba9d276065e44bfb2fe653510f9c67331057ef285ad99d7cc23c571885f0c083ca657eedd372e8de4861e81bc7ead7ad0c23ea52b11d5b41264f8920a785160c6986f04134905c69cd5430b366d5a",
-        "b0d762c3548c039a30c3069e50503a5cddb2aed561dc2005d0b26399a299d48d",
+
+if __name__ == "__main__":
+    print(
+        AES.decrypt(
+            "6be324dc043e75eed2e43c9aad23e8d15eede7571ebc81dfb5445447b879db49a81afb0814c73f4ad8913ee6cc21c4ec9e31b6610955c0ccae4fde9306cfde96cf9066df5f9ecb1760e3eb4efbd4d991",
+            "916a889f901e2463c409c09b7766525dd0d8b6d0d26fecdb03d217b17638d6b4",
+        )
     )
-)

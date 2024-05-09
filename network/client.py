@@ -3,22 +3,22 @@ from .protocol import Response
 
 
 class Client:
-    def __init__(self, clientSocket: socket.socket, clientAddress: tuple) -> None:
-        self.clientSocket: socket.socket = clientSocket
-        self.clientAddress: tuple = clientAddress
+    def __init__(self, client_socket: socket.socket, client_address: tuple) -> None:
+        self.client_socket: socket.socket = client_socket
+        self.client_address: tuple = client_address
 
     def send(self, response: Response) -> None:
-        self.clientSocket.sendall(response.generate().encode())
+        self.client_socket.sendall(response.to_http_string().encode())
 
-    def getData(self, timeout: float = 1) -> str:
+    def get_data(self, timeout: float = 1) -> str:
         result = ""
 
         # for preventing dDoS attacks
-        self.clientSocket.settimeout(timeout)
+        self.client_socket.settimeout(timeout)
 
         while True:
             try:
-                chunk = self.clientSocket.recv(1024)
+                chunk = self.client_socket.recv(1024)
             except socket.timeout:
                 break
 
@@ -33,4 +33,4 @@ class Client:
         return result
 
     def close(self):
-        self.clientSocket.close()
+        self.client_socket.close()

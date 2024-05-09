@@ -7,20 +7,20 @@ class Database(sqlite3.Connection):
     __instance = None
 
     @classmethod
-    def getInstance(cls) -> "Database":
+    def get_instance(cls) -> "Database":
         if cls.__instance == None:
             cls.__instance = cls(Config.DATABASE_PATH)
 
         return cls.__instance
 
-    def __init__(self, databasePath: str, *args, **kwargs) -> None:
+    def __init__(self, database_path: str, *args, **kwargs) -> None:
         if Database.__instance != None:
             raise Exception("This class is a singleton!")
         else:
             Database.__instance = self
 
         super().__init__(
-            database=databasePath, check_same_thread=False, *args, **kwargs
+            database=database_path, check_same_thread=False, *args, **kwargs
         )
 
         self.row_factory = sqlite3.Row
@@ -41,11 +41,11 @@ class Cursor:
     def __init__(self, cursor: sqlite3.Cursor) -> None:
         self.cursor = cursor
 
-    def fetchOne(self) -> sqlite3.Row | None:
+    def fetch_one(self) -> sqlite3.Row | None:
         return self.cursor.fetchone()
 
-    def fetchMany(self, size: int | None = 1) -> list[sqlite3.Row]:
+    def fetch_many(self, size: int | None = 1) -> list[sqlite3.Row]:
         return self.cursor.fetchmany(size)
 
-    def fetchAll(self) -> list[sqlite3.Row]:
+    def fetch_all(self) -> list[sqlite3.Row]:
         return self.cursor.fetchall()

@@ -7,11 +7,11 @@
 # r = requests.post(url, data=payload)
 # print(r.text)
 
-from database.database import Database
-import base64
+# from database.database import Database
+# import base64
 
-db = Database.getInstance()
+# db = Database.get_instance()
 
-db.execute(
-    "INSERT INTO wishlists (productID, username) VALUES (?, ?)", (123, "yali1234")
-)
+# db.execute(
+#     "INSERT INTO wishlists (productID, username) VALUES (?, ?)", (123, "yali1234")
+# )

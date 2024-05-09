@@ -1,216 +1,148 @@
 from enum import Enum
-from network.encryption.AES import AES
 import json
 
 
+class HTTPMethod(Enum):
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    UNKNOWN = "UNKNOWN"
+    OPTIONS = "OPTIONS"
+
+    @staticmethod
+    def from_raw(request: str):
+        """
+        Extracts the HTTP method from a raw HTTP request string.
+
+        Args:
+        - request (str): The raw HTTP request string.
+
+        Returns:
+        - RequestMethod: The extracted HTTP method.
+        """
+        lines = request.split("\r\n")
+        method = lines[0].split(" ")[0]
+        return HTTPMethod(method)
+
+
 class Request:
-    class RequestMethod(Enum):
-        GET = "GET"
-        POST = "POST"
-        PUT = "PUT"
-        DELETE = "DELETE"
-        UNKNOWN = "UNKNOWN"
-        OPTIONS = "OPTIONS"
+    def __init__(
+        self,
+        method: HTTPMethod = HTTPMethod.UNKNOWN,
+        url: str = "",
+        params: dict[str, str] = {},
+        path_variables: list[str] = [],
+        body: str = "",
+        headers: dict[str, str] = {},
+        payload: dict[str, str] = {},
+    ):
+        self.method = method
+        self.url = url
+        self.params = params
+        self.path_variables = path_variables
+        self.body = body
+        self.headers = headers
+        self.payload = payload
 
-        @staticmethod
-        def fromRequestData(requestData: str):
-            mapper: dict = {v.value: v for v in Request.RequestMethod}
+    @staticmethod
+    def from_raw(request: str) -> "Request":
+        """
+        Creates a Request object from a raw HTTP request string.
 
-            if requestData.split(" ")[0] not in mapper:
-                return Request.RequestMethod.UNKNOWN
+        Args:
+        - request (str): The raw HTTP request string.
 
-            return mapper[requestData.split(" ")[0]]
+        Returns:
+        - Request: The parsed Request object.
+        """
 
-    def __init__(self, data: str) -> None:
-        self.splittedData = data.split("\r\n")
+        lines = request.split("\r\n")
+        method = HTTPMethod.from_raw(request)
+        url = lines[0].split(" ")[1]
 
-        self.method: Request.RequestMethod = Request.RequestMethod.UNKNOWN
-        self.url: list[str] = [""]
-        self.params: dict[str, str] = {}
-        self.body: str = ""
-        self.headers: dict[str, str] = {}
-        self.payload: dict[str, str] = {}
+        # Parse path variables
+        path_variables = url[1:].split("/")
 
-        if len(self.splittedData) < 2:
-            return
+        headers = {}
+        params = {}
+        payload = {}
+        body = ""
 
-        self.parse()
+        # Parse headers
+        for line in lines[1:]:
+            if line == "":  # means that we reached to \r\n\r\n
+                break
 
-    def parse(self) -> None:
-        self.method = self.getMethod()
-        self.url = self.getUrl()
-        self.params = self.getParams()
-        self.body = self.getBody()
-        self.headers = self.getHeaders()
-        self.payload = self.getPayload()
+            key, value = line.split(": ", 1)
+            headers[key] = value.strip()
 
-    def getMethod(self) -> RequestMethod:
-        return Request.RequestMethod.fromRequestData(self.splittedData[0])
+        # Parse URL parameters
+        if "?" in url:
+            url, query_string = url.split("?", 1)
+            params = dict(param.split("=") for param in query_string.split("&"))
 
-    def getUrl(self) -> list[str]:
-        return self.splittedData[0].split(" ")[1].split("?")[0].split("/")[1:]
+        # Parse body and payload for POST requests (assuming JSON)
+        if method == HTTPMethod.POST and lines[-1]:
+            body = lines[-1]
+            payload = json.loads(body)
 
-    def getParams(self) -> dict[str, str]:
-        params: dict[str, str] = {}
-
-        splitted = self.splittedData[0].split(" ")[1].split("?")
-
-        if len(splitted) < 2:
-            return params
-
-        for param in splitted[1].split("&"):
-            params[param.split("=")[0]] = param.split("=")[1]
-
-        return params
-
-    def getBody(self) -> str:
-        return self.splittedData[-1]
-
-    def getHeaders(self) -> dict[str, str]:
-        headers: dict[str, str] = {}
-
-        for header in self.splittedData[1:-2]:
-            headers[header.split(": ")[0]] = header.split(": ")[1]
-
-        return headers
-
-    def getPayload(self) -> dict[str, str]:
-        if self.method != Request.RequestMethod.POST:
-            return {}
-
-        try:
-            return json.loads(self.body)
-        except:
-            return {}
-
-    def __str__(self) -> str:
-        return str(self.splittedData)
-
-    def __setattr__(self, name, value):
-        self.__dict__[name] = value
-
-    def __getattribute__(self, __name: str):
-        return super().__getattribute__(__name)
+        return Request(
+            method=method,
+            url=url,
+            params=params,
+            path_variables=path_variables,
+            headers=headers,
+            payload=payload,
+        )
 
 
 class Response:
-    """
-    This class is responsible for creating a response to the client.
-    """
+    def __init__(self, headers: dict[str, str] = {}, body: str | dict = "") -> None:
+        self.headers = headers
+        self.body = json.dumps(body)
 
-    class StatusCode(Enum):
-        OK = 200
-        CREATED = 201
-        BAD_REQUEST = 400
-        UNAUTHORIZED = 401
-        NOT_FOUND = 404
-        CONFLICT = 409
-        INTERNAL_SERVER_ERROR = 500
-
-        @staticmethod
-        def fromInt(statusCode: int):
-            mapper: dict = {v.value: v for v in Response.StatusCode}
-
-            if statusCode not in mapper:
-                return Response.StatusCode.INTERNAL_SERVER_ERROR
-
-            return mapper[statusCode]
-
-        def __str__(self) -> str:
-            return str(self.value) + " " + self.name.replace("_", " ").title()
-
-        def __bool__(self) -> bool:
-            return str(self.value).startswith("2")
-
-    class ContentType(Enum):
-        TEXT = "text"
-        JSON = "json"
-
-    def __init__(
-        self,
-        content: str | dict = "",
-        contentType: ContentType = ContentType.TEXT,
-        statusCode: StatusCode = StatusCode.OK,
-        headers: dict[str, str] = {},
-        key: str = "",
-    ) -> None:
-        self.headers: dict[str, str] = headers
-        self.content: str = ""
-        self.key = key
-        self.setContent(content, contentType)
-
-        self.statusCode: Response.StatusCode = statusCode
-
-    def setContent(
-        self, content: str | dict | list, contentType: ContentType = ContentType.TEXT
-    ) -> "Response":
-        if contentType == Response.ContentType.JSON:
-            self.setHeader("Content-Type", "application/json")
-            self.content = json.dumps(content)
-
-        else:
-            if isinstance(content, dict) or isinstance(content, list):
-                return self.setContent(content, Response.ContentType.JSON)
-
-            self.setHeader("Content-Type", "text/plain")
-            self.content = str(content)
-
-        if len(self.content) > 0:
-            self.setHeader("Content-Length", str(len(self.content)))
-
-        return self
-
-    def setHeader(self, key: str, value: str) -> "Response":
+    def set_header(self, key: str, value: str):
         self.headers[key] = value
 
-        return self
+    def to_http_string(self) -> str:
+        """
+        Convert the Response object to an HTTP response string.
 
-    def setStatusCode(self, statusCode: StatusCode) -> "Response":
-        self.statusCode = statusCode
+        Returns:
+        - str: The HTTP response string.
+        """
+        self.set_header("Content-Length", str(len(self.body)))
+        self.set_header("Content-Type", "application/json")
 
-        return self
-
-    def generate(self) -> str:
-        self.setContent(
-            AES.encrypt(self.content, self.key) if self.key != "" else self.content
-        )
-
-        response: str = "HTTP/1.1 " + str(self.statusCode) + "\r\n"
-
-        response += "\r\n".join(
+        header_lines = "\r\n".join(
             [f"{key}: {value}" for key, value in self.headers.items()]
         )
 
-        print()
-
-        if len(self.content) > 0:
-            response += "\r\n\r\n" + self.content
-
-        response += "\r\n"
-        return response
+        response_string = f"HTTP/1.1 200 OK\r\n{header_lines}\r\n\r\n{self.body}"
+        return response_string
 
     @staticmethod
-    def error(
-        message: str | dict | list, statusCode: StatusCode = StatusCode.OK
-    ) -> "Response":
+    def error(data: str | dict | list) -> "Response":
+        if isinstance(data, dict):
+            return Response(
+                body={"success": False, **data},
+            )
+
         return Response(
-            content={"success": False, "message": message},
-            contentType=Response.ContentType.JSON,
-            statusCode=statusCode,
+            body={"success": False, "message": data},
         )
 
     @staticmethod
-    def success(
-        message: str | dict | list,
-        statusCode: StatusCode = StatusCode.OK,
-        key: str = "",
-    ) -> "Response":
+    def success(data: str | dict | list) -> "Response":
+        if isinstance(data, dict):
+            return Response(
+                body={"success": True, **data},
+            )
+
         return Response(
-            content={"success": True, "message": message},
-            contentType=Response.ContentType.JSON,
-            statusCode=statusCode,
-            key=key,
+            body={"success": True, "message": data},
         )
 
     def __str__(self) -> str:
-        return self.generate()
+        return self.to_http_string()
