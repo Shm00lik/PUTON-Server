@@ -132,7 +132,7 @@ class Server:
             encryption_token = int(request.headers.get("encryptionToken") or 0)
 
             if not encryption_token or not self.already_encrypted(encryption_token):
-                return Response.error("Invalid Request")
+                return Response.error("EncryptionToken is missing or invalid")
 
             encryption_key = self.get_encryption_key(encryption_token)
 
