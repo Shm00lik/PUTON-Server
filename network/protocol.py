@@ -4,6 +4,10 @@ import json
 
 
 class HTTPMethod(Enum):
+    """
+    An enumeration representing HTTP methods.
+    """
+
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -28,6 +32,10 @@ class HTTPMethod(Enum):
 
 
 class Request:
+    """
+    A class representing an HTTP request.
+    """
+
     def __init__(
         self,
         method: HTTPMethod = HTTPMethod.UNKNOWN,
@@ -102,11 +110,22 @@ class Request:
 
 
 class Response:
+    """
+    A class representing an HTTP response.
+    """
+
     def __init__(self, headers: dict[str, str] = {}, body: str | dict = "") -> None:
         self.headers = headers
         self.body = json.dumps(body)
 
     def set_header(self, key: str, value: str):
+        """
+        Sets a header in the response.
+
+        Args:
+        - key (str): The header key.
+        - value (str): The header value.
+        """
         self.headers[key] = value
 
     def to_http_string(self) -> str:
@@ -128,9 +147,23 @@ class Response:
 
     @staticmethod
     def error(data: str | dict | list) -> "Response":
+        """
+        Creates an error response.
+
+        Args:
+        - data (str | dict | list): The error data.
+
+        Returns:
+        - Response: The error response.
+        """
         if isinstance(data, dict):
             return Response(
                 body={"success": False, **data},
+            )
+
+        if isinstance(data, list):
+            return Response(
+                body={"success": False, "data": data},
             )
 
         return Response(
@@ -139,6 +172,15 @@ class Response:
 
     @staticmethod
     def success(data: str | dict | list) -> "Response":
+        """
+        Creates a success response.
+
+        Args:
+        - data (str | dict | list): The success data.
+
+        Returns:
+        - Response: The success response.
+        """
         if isinstance(data, dict):
             return Response(
                 body={"success": True, **data},

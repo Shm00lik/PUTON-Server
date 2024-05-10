@@ -41,4 +41,10 @@ class Endpoint:
         return Endpoint("/", HTTPMethod.GET, lambda _: Response.error("Not Found"))
 
     def __str__(self):
-        return f"{self.method} {self.url} {self.encrypted} {self.handler.__name__}"
+        """
+        Returns a string representation of the endpoint.
+
+        Returns:
+        - str: A string representation of the endpoint.
+        """
+        return f"Method: {self.method} URL: {self.url} Encrypted: {self.encrypted} Handler:{self.handler.__name__}"
