@@ -32,6 +32,19 @@ def login(request: Request) -> bool:
     return "username" in request.payload and "password" in request.payload
 
 
+def product(request: Request) -> bool:
+    """
+    Validates whether the request contains the necessary parameters for retrieving a product.
+
+    Args:
+    - request (Request): The incoming request.
+
+    Returns:
+    - bool: True if the request contains product's id and it's a number, False otherwise.
+    """
+    return len(request.path_variables) > 1 and (request.path_variables[1]).isdigit()
+
+
 def wishlist_product(request: Request) -> bool:
     """
     Validates whether the request contains the necessary payload fields for adding a product to the wishlist.

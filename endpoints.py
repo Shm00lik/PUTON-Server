@@ -133,6 +133,9 @@ def wishlist_product(data: Data) -> Response:
 @Router.route("/product/:id", HTTPMethod.GET)
 @chekcs.authenticated
 def product(data: Data) -> Response:
+    if not chekcs.product(data.request):
+        return Response.error("Invalid Request")
+    
     product = data.db.execute(
         "SELECT * FROM products WHERE productID = ?",
         (data.request.path_variables[1],),
@@ -141,7 +144,9 @@ def product(data: Data) -> Response:
     if product == None:
         return Response.error("Product not found!")
 
-    product = Product.from_database(product)
+    in_wishlist = data.db.execute("SELECT * FROM wishlists WHERE username = ? AND productID = ?", (data.user.username, data.request.path_variables[1])).fetch_one() != None
+
+    product = Product.from_database(product, in_wishlist)
 
     return Response.success(product.to_dict())
 

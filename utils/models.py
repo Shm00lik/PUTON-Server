@@ -63,6 +63,7 @@ class Product:
         title: str,
         description: str,
         price: float,
+        in_wishlist: bool,
         left_eye_data: dict[str, int],
         right_eye_data: dict[str, int],
     ) -> None:
@@ -81,6 +82,7 @@ class Product:
         self.title = title
         self.description = description
         self.price = price
+        self.in_wishlist = in_wishlist
         self.left_eye_data = left_eye_data
         self.right_eye_data = right_eye_data
 
@@ -109,6 +111,7 @@ class Product:
                 "description": self.description,
                 "price": self.price,
                 "image": self.image,
+                "inWishlist": self.in_wishlist,
                 "leftEyeX": self.left_eye_data["x"],
                 "leftEyeY": self.left_eye_data["y"],
                 "rightEyeX": self.right_eye_data["x"],
@@ -121,10 +124,11 @@ class Product:
             "description": self.description,
             "price": self.price,
             "image": self.image,
+            "inWishlist": self.in_wishlist
         }
 
     @staticmethod
-    def from_database(product: sqlite3.Row) -> "Product":
+    def from_database(product: sqlite3.Row, in_wishlist: bool = True) -> "Product":
         """
         Creates a Product object from a database row.
 
@@ -139,6 +143,7 @@ class Product:
             title=product["title"],
             description=product["description"],
             price=product["price"],
+            in_wishlist=in_wishlist,
             left_eye_data={"x": product["leftEyeX"], "y": product["leftEyeY"]},
             right_eye_data={"x": product["rightEyeX"], "y": product["rightEyeY"]},
         )
