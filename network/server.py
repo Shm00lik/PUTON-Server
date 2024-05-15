@@ -118,32 +118,40 @@ class Server:
         Args:
         - client (Client): The client connection to handle.
         """
+
+        # Getting the raw data
         request_data = client.get_data(self.timeout)
 
+        # In case the data is empty, close the connection and do nothing
         if request_data == "":
             client.close()
             return
 
+        # Convert the raw data to a Request object
         request = Request.from_raw(request_data)
 
+        # Get the right endpoint
         endpoint = Router.get_endpoint(request)
 
-        print(
-            f"Request from {client.client_address}. Method: {request.method}. URL: {request.url}"
-        )
-
+        # Pre-processing logic before handling a request
         response = self.before_handle(request, endpoint)
+
+        # Run the endpoint handler
         response = endpoint.handler(
             Data(request, Database.get_instance(), client, self)
         )
+
+        # Post-processing logic after handling a request
         response = self.after_handle(request, response, endpoint)
 
+        # Send the response
         client.send(response)
 
+        # Close the connection
         self.clients.remove(client)
         client.close()
 
-    def before_handle(self, request: Request, endpoint: Endpoint):
+    def before_handle(self, request: Request, endpoint: Endpoint) -> None:
         """
         Pre-processing logic before handling a request.
 
@@ -151,16 +159,24 @@ class Server:
         - request (Request): The incoming request.
         - endpoint (Endpoint): The matched endpoint for the request.
         """
+
+        # Check if the data needs to be decrypted
         if endpoint.encrypted:
+
+            # Getting the encryptionToken from the client
             encryption_token = int(request.headers.get("encryptionToken") or 0)
 
+            # If the encryption token is not valid, do nothing
             if not encryption_token or not self.already_encrypted(encryption_token):
                 return
 
+            # Getting the encryption key corresponding to the encryption token
             encryption_key = self.get_encryption_key(encryption_token)
 
+            # Decrypt the request body
             request.body = AES.decrypt(request.body, encryption_key)
 
+            # Convert the decrypted body to it's JSON form if possible
             request.payload = (
                 json.loads(request.body) if utils.is_json(request.body) else {}
             )
@@ -179,18 +195,26 @@ class Server:
         Returns:
         - Response: The processed response.
         """
+
+        # Set CORS headers
         response.set_header("Access-Control-Allow-Origin", "*")
         response.set_header("Access-Control-Allow-Headers", "*")
         response.set_header("Access-Control-Allow-Methods", "*")
 
+        # Check if the data needs to be encrypted
         if endpoint.encrypted:
+
+            # Getting the encryptionToken from the client
             encryption_token = int(request.headers.get("encryptionToken") or 0)
 
+            # If the encryption token is not valid, do nothing
             if not encryption_token or not self.already_encrypted(encryption_token):
                 return Response.error("EncryptionToken is missing or invalid")
 
+            # Getting the encryption key corresponding to the encryption token
             encryption_key = self.get_encryption_key(encryption_token)
 
+            # Encrypt the response data
             response.body = AES.encrypt(response.body, encryption_key)
 
         return response
