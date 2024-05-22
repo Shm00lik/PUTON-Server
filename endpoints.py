@@ -4,6 +4,7 @@ from network.protocol import Response, HTTPMethod
 from network.data import Data
 from network.router import Router
 from utils.models import Product
+from utils.utils import generate_salt
 import utils.checks as chekcs
 import uuid
 import time
@@ -36,14 +37,16 @@ def register(data: Data) -> Response:
         )
 
     token = uuid.uuid4().hex
+    salt = generate_salt()
 
     data.db.execute(
-        "INSERT INTO users (email, username, password, token) VAlUES (?, ?, ?, ?)",
+        "INSERT INTO users (email, username, password, token, salt) VAlUES (?, ?, ?, ?, ?)",
         (
             data.request.payload.get("email"),
             data.request.payload.get("username"),
-            data.request.payload.get("password"),
+            str(data.request.payload.get("password")) + salt,
             token,
+            salt,
         ),
     )
 
@@ -56,14 +59,16 @@ def login(data: Data) -> Response:
         return Response.error("Invalid Request")
 
     user = data.db.execute(
-        "SELECT * FROM users WHERE username = ? AND password = ?",
-        (
-            data.request.payload.get("username"),
-            data.request.payload.get("password"),
-        ),
+        "SELECT * FROM users WHERE username = ?",
+        (data.request.payload.get("username"),),
     ).fetch_one()
 
     if user is None:
+        return Response.error(
+            "Username and/or password are incorrect!",
+        )
+
+    if user["password"] != str(data.request.payload.get("password")) + user["salt"]:
         return Response.error(
             "Username and/or password are incorrect!",
         )
@@ -135,7 +140,7 @@ def wishlist_product(data: Data) -> Response:
 def product(data: Data) -> Response:
     if not chekcs.product(data.request):
         return Response.error("Invalid Request")
-    
+
     product = data.db.execute(
         "SELECT * FROM products WHERE productID = ?",
         (data.request.path_variables[1],),
@@ -144,7 +149,13 @@ def product(data: Data) -> Response:
     if product == None:
         return Response.error("Product not found!")
 
-    in_wishlist = data.db.execute("SELECT * FROM wishlists WHERE username = ? AND productID = ?", (data.user.username, data.request.path_variables[1])).fetch_one() != None
+    in_wishlist = (
+        data.db.execute(
+            "SELECT * FROM wishlists WHERE username = ? AND productID = ?",
+            (data.user.username, data.request.path_variables[1]),
+        ).fetch_one()
+        != None
+    )
 
     product = Product.from_database(product, in_wishlist)
 
