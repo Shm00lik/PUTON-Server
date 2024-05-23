@@ -8,6 +8,7 @@ from utils.utils import generate_salt
 import utils.checks as chekcs
 import uuid
 import time
+import hashlib
 
 
 @Router.route("/me", HTTPMethod.GET)
@@ -38,13 +39,14 @@ def register(data: Data) -> Response:
 
     token = uuid.uuid4().hex
     salt = generate_salt()
+    salted_password = str(data.request.payload.get("password")) + salt
 
     data.db.execute(
         "INSERT INTO users (email, username, password, token, salt) VAlUES (?, ?, ?, ?, ?)",
         (
             data.request.payload.get("email"),
             data.request.payload.get("username"),
-            str(data.request.payload.get("password")) + salt,
+            hashlib.sha256(salted_password.encode()).hexdigest(),
             token,
             salt,
         ),
@@ -68,7 +70,9 @@ def login(data: Data) -> Response:
             "Username and/or password are incorrect!",
         )
 
-    if user["password"] != str(data.request.payload.get("password")) + user["salt"]:
+    salted_password = str(data.request.payload.get("password")) + str(user["salt"])
+
+    if user["password"] != hashlib.sha256(salted_password.encode()).hexdigest():
         return Response.error(
             "Username and/or password are incorrect!",
         )
