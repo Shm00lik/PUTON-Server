@@ -8,7 +8,7 @@ class User:
     A class representing a user in the system.
     """
 
-    def __init__(self, username: str, email: str, password: str, token: str):
+    def __init__(self, username: str, email: str, password: str, token: str, salt: str):
         """
         Initializes the User object.
 
@@ -22,6 +22,7 @@ class User:
         self.email = email
         self.password = password
         self.token = token
+        self.salt = salt
 
     @staticmethod
     def from_database(user: sqlite3.Row) -> "User":
@@ -39,6 +40,7 @@ class User:
             email=user["email"],
             password=user["password"],
             token=user["token"],
+            salt=user["salt"],
         )
 
     @staticmethod
@@ -49,7 +51,7 @@ class User:
         Returns:
         - User: The default User object.
         """
-        return User(username="", email="", password="", token="")
+        return User(username="", email="", password="", token="", salt="")
 
 
 class Product:
@@ -124,7 +126,7 @@ class Product:
             "description": self.description,
             "price": self.price,
             "image": self.image,
-            "inWishlist": self.in_wishlist
+            "inWishlist": self.in_wishlist,
         }
 
     @staticmethod

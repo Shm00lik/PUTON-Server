@@ -1,6 +1,5 @@
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
 import hashlib
 
 
@@ -23,9 +22,7 @@ class AES:
         """
 
         # Pad the message to be a multiple of 16 bytes (AES block size)
-        padder = padding.PKCS7(128).padder()
-        padded_data = padder.update(message.encode())
-        padded_data += padder.finalize()
+        padded_data = AES.pad(message.encode())
 
         # Create an AES cipher object
         cipher = Cipher(
@@ -66,14 +63,39 @@ class AES:
 
         try:
             # Unpad the decrypted data
-            unpadder = padding.PKCS7(128).unpadder()
-            data = unpadder.update(padded_data)
-            data += unpadder.finalize()
-        except ValueError:
+            data = AES.unpad(padded_data)
+        except:
             # If unpadding fails, return the unpadded data directly
             return padded_data.decode("utf-8")
 
         return data.decode("utf-8")
+
+    @staticmethod
+    def pad(message: bytes) -> bytes:
+        """
+        Pads a message to be a multiple of 16 bytes (AES block size).
+
+        Args:
+        - message (bytes): The message to pad.
+
+        Returns:
+        - bytes: The padded message.
+        """
+        length_to_pad = 16 - (len(message) % 16)
+        return message + bytes([length_to_pad] * length_to_pad)
+
+    @staticmethod
+    def unpad(message: bytes) -> bytes:
+        """
+        Unpads a padded message.
+
+        Args:
+        - message (bytes): The padded message.
+
+        Returns:
+        - bytes: The unpadded message.
+        """
+        return message[: -message[-1]]
 
     @staticmethod
     def diffie_hellman_key_to_aes_key(diffie_hellman_key: int) -> str:

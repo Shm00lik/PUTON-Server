@@ -86,8 +86,8 @@ def login(data: Data) -> Response:
 @chekcs.authenticated
 def wishlist(data: Data) -> Response:
     wishlist = data.db.execute(
-        "SELECT productID FROM wishlists WHERE username = ?",
-        (data.user.username,),
+        "SELECT productID FROM wishlists WHERE token = ?",
+        (data.user.token,),
     ).fetch_all()
 
     products: list[Product] = []
@@ -116,22 +116,22 @@ def wishlist_product(data: Data) -> Response:
 
     isInWishlist = (
         data.db.execute(
-            "SELECT * FROM wishlists WHERE username = ? AND productID = ?",
-            (data.user.username, data.request.payload.get("id")),
+            "SELECT * FROM wishlists WHERE token = ? AND productID = ?",
+            (data.user.token, data.request.payload.get("id")),
         ).fetch_one()
         != None
     )
 
     if isInWishlist:
         data.db.execute(
-            "DELETE FROM wishlists WHERE username = ? AND  productID = ? ",
-            (data.user.username, data.request.payload.get("id")),
+            "DELETE FROM wishlists WHERE token = ? AND  productID = ? ",
+            (data.user.token, data.request.payload.get("id")),
         )
 
     else:
         data.db.execute(
-            "INSERT INTO wishlists (username, productID) VALUES (?, ?)",
-            (data.user.username, data.request.payload.get("id")),
+            "INSERT INTO wishlists (token, productID) VALUES (?, ?)",
+            (data.user.token, data.request.payload.get("id")),
         )
 
     return Response.success(
@@ -155,8 +155,8 @@ def product(data: Data) -> Response:
 
     in_wishlist = (
         data.db.execute(
-            "SELECT * FROM wishlists WHERE username = ? AND productID = ?",
-            (data.user.username, data.request.path_variables[1]),
+            "SELECT * FROM wishlists WHERE token = ? AND productID = ?",
+            (data.user.token, data.request.path_variables[1]),
         ).fetch_one()
         != None
     )
